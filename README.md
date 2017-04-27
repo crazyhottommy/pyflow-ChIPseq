@@ -48,7 +48,7 @@ Rscript sraDownload.R  -a 'ascp -QT -l 300m -i ~/.aspera/connect/etc/asperaweb_i
 * [fastqc](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
 * `bamCoverage` v2.3.3 from [deeptools](https://github.com/fidelram/deepTools) for making RPKM normalized and input subtracted bigwig files
 * [bowtie1](http://bowtie-bio.sourceforge.net/index.shtml) for aligning short reads (< 50bp)
-* samblaster to remove duplicates
+* [samblaster](https://github.com/GregoryFaust/samblaster) v0.1.22 to remove duplicates and downsampling.
 * [samtools](http://www.htslib.org/) v1.3.1
 * [ROSE](http://younglab.wi.mit.edu/super_enhancer_code.html) for calling superEnhancer. ROSE has to be run inside the installation folder. now I hard coded the path in the Snakefile. (you will have to change that to the ROSE directory in your cluster). Todo: expose the path to the `config.yaml` file that one can change.
 * [macs1](https://pypi.python.org/pypi/MACS/1.4.2) v1.4.2 and [macs2](https://github.com/taoliu/MACS) v2.1.1 for calling peaks (macs2 for broad peaks).
