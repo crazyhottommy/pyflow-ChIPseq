@@ -7,7 +7,7 @@ Now, this is working on LSF, I will have another branch for SLURM.
 
 ### work flow of the pipeline
 
-![](./rule_diagram.png)
+![](./GEO_rulegraph.png)
 
 
 ### Dependiencies
@@ -216,7 +216,7 @@ queue short, and executed on the host apple.
 
 ## rerun one sample, just specify the name of the target file
 
-./pyflow-ChIPseq -R SRR3144652.sorted.bam
+./pyflow-ChIPseq -R 02aln/SRR3144652.sorted.bam
 
 # check snakemake -f, -R, --until options
 ./pyflow-ChIPseq -f call_peaks_macs2
