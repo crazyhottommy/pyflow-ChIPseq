@@ -50,6 +50,7 @@ Rscript sraDownload.R  -a 'ascp -QT -l 300m -i ~/.aspera/connect/etc/asperaweb_i
 * [ROSE](http://younglab.wi.mit.edu/super_enhancer_code.html) for calling superEnhancer. ROSE has to be run inside the installation folder. now I hard coded the path in the Snakefile. (you will have to change that to the ROSE directory in your cluster). Todo: expose the path to the `config.yaml` file that one can change.
 * [macs1](https://pypi.python.org/pypi/MACS/1.4.2) v1.4.2 and [macs2](https://github.com/taoliu/MACS) v2.1.1 for calling peaks (macs2 for broad peaks).
 * [multiQC](http://multiqc.info/)
+* [phantompeakqual](https://github.com/kundajelab/phantompeakqualtools)
 
 `macs1`, `macs2` and `ROSE` are python2.x, see this [Using Snakemake and Macs2](https://groups.google.com/forum/#!searchin/snakemake/macs%7Csort:relevance/snakemake/60txGSq81zE/NzCUTdJ_AQAJ) in the snakemake google group.
 
