@@ -270,7 +270,7 @@ snakemake -n -R `snakemake --list-code-changes`
 
 ### TO DO list
 
-**provide a output directory** now everything will be output in the current GEOpyflow-ChIPseq directory in a structured fasion. : `00log`, `01seq`, `02fqc`, `03aln` etc
-**work for paired-end ChIPseq as well** now only for single-end. 
-**put everything in docker**  
+**provide a output directory** now everything will be output in the current GEOpyflow-ChIPseq directory in a structured fasion. : `00log`, `01seq`, `02fqc`, `03aln` etc  
+**work for paired-end ChIPseq as well** now only for single-end.   
+**put everything in docker**    
 
