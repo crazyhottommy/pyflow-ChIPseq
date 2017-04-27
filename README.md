@@ -9,6 +9,7 @@ Now, this is working on LSF, I will have another branch for SLURM.
 
 ![](./GEO_rulegraph.png)
 
+In the `config.yaml` file you can change settings. e.g. path to a different genome to align, p value cut-offs. The `target_reads` is the number of reads that downsampled to. I set 15 million for default. If the number of reads of the orignal bam files are less than `target_reads`, the pipeline will just keep whatever the number it has.
 
 ### Dependiencies
 
@@ -135,7 +136,7 @@ Rscript ../scripts/sraDownload.R -a 'ascp -QT -l 300m -i ~/.aspera/connect/etc/a
 `chmod u+x download.sh`
 
 ```bash
-# inside the GEOpyflow-ChIPseq folder:
+# inside the GEOpyflow-ChIPseq/01seq folder:
 cat ../SRR.txt | sed '1d' | tr "\t" "\n" | sort | uniq > srr_unique.txt
 
 ## only have 4 jobs in parallel, good behavior on a cluster
