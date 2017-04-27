@@ -107,8 +107,8 @@ for (idx in 1:num.ids) {
 
     files <- basename(meta$ftp)
 
-    file.rename(file.path(opt$outpath, files),
-                file.path(opt$outpath, paste(meta$title, files, sep = ".")))
+#    file.rename(file.path(opt$outpath, files),
+#               file.path(opt$outpath, paste(meta$title, files, sep = ".")))
     message(paste(id, "finished"))
 }
 
