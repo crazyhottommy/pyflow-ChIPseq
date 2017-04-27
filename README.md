@@ -27,6 +27,8 @@ biocLite("SRAdb")
  Rscript sraDownload.R  -a ascp -QT -l 300m -i ~/.aspera/connect/etc/asperaweb_id_dsa.openssh -t fastq SRR3144652
 ```
 
+This script will download the meta file for each SRR id as well.
+
 * aspera for downloading
 
 check this blog post by MARK ZIEMANN http://genomespot.blogspot.com/2015/05/download-sra-data-with-aspera-command.html
@@ -265,4 +267,10 @@ and
 snakemake -n -R `snakemake --list-code-changes`
 ```
 
+
+### TO DO list
+
+**provide a output directory** now everything will be output in the current GEOpyflow-ChIPseq directory in a structured fasion. : `00log`, `01seq`, `02fqc`, `03aln` etc
+**work for paired-end ChIPseq as well** now only for single-end. 
+**put everything in docker**  
 
