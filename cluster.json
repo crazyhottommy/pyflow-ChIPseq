@@ -1,0 +1,94 @@
+{
+    "__default__" :
+    {
+        "time" : "00:15",
+        "cpu": 1,
+        "email" : "mtang1@mdanderson.org",
+        "EmailNotice": "N",
+        "MaxMem": 16384,
+        "queue" : "short"
+    },
+    "merge_fastqs" :
+    {
+        "time" : "0:30",
+        "cpu" : 1
+    },
+    "fastqc":
+    {
+        "time" : "1:00",
+        "cpu" : 1
+    },
+    "clean_fastq":
+    {
+        "time" : "1:00",
+        "cpu" : 6
+    },
+    "align":
+    {
+        "time" : "04:00",
+        "MaxMem": 32768,
+        "cpu" : 5,
+        "queue" : "medium"
+    },
+    "sort_bam":
+    {
+        "time" : "01:00",
+        "MaxMem": 32768,
+        "cpu" : 5
+    },
+    "index_bam":
+    {
+        "time" : "00:20"
+    },
+    "flagstat_bam":
+    {
+        "time" : "00:30"
+    },
+    "down_sample":
+    {
+        "time" : "01:00",
+        "cpu" : 5
+    },
+    "phantom_peak_qual":
+    {
+        "time": "01:00",
+	    "cpu" : 4
+    },
+    "call_peaks_macs1":
+    {
+        "time" : "02:30",
+        "queue" : "medium"
+    },
+    "call_peaks_macs2":
+    {   "time" : "02:00",
+        "queue" : "medium"
+    },
+    "make_bigwigs":
+    {
+        "time" : "03:00",
+        "MaxMem": 32768,
+        "cpu" : 5,
+        "queue" : "medium"
+    },
+    "make_inputSubtract_bigwigs":
+    {
+        "time" : "03:00",
+        "MaxMem": 32768,
+        "cpu" : 5,
+        "queue" : "medium"
+    },
+    "multiQC" :
+    {
+        "time" : "00:10"
+    },
+    "bam2bed" :
+    {
+        "time": "01:00"
+    },
+    "superEnhancer":
+    {
+        "time": "8:00",
+        "cpu": 4,
+        "queue" : "medium"
+    }
+}
