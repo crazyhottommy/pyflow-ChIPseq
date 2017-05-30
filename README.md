@@ -3,6 +3,8 @@ a snakemake pipeline to process ChIP-seq files from GEO
 
 I have so many people asking me to process a public GEO ChIP-seq data set for them. I hate to repeat the same steps and decide to make a pipeline for it.
 
+**UPDATE** 05/30/2017. Now, the pipeline can handle in-house data as well.
+
 Now, this is working on LSF, I will have another branch for Moab.
 
 ### work flow of the pipeline
@@ -255,7 +257,7 @@ pyflow-ChIPseq.sh  -np
 
 
 ### Extra notes on file names
-If one set up a lab, it is necessary to have consistent file naming across all the projects. `TCGA`project is a great example for us to follow. A [barcode system](https://wiki.nci.nih.gov/display/TCGA/TCGA+barcode) can make your life a lot easier for downstream analysis.
+If one sets up a lab, it is necessary to have consistent file naming across all the projects. `TCGA`project is a great example for us to follow. A [barcode system](https://wiki.nci.nih.gov/display/TCGA/TCGA+barcode) can make your life a lot easier for downstream analysis.
 
 ![](./TCGA.png)
 
