@@ -1,0 +1,98 @@
+{
+    "Lan-1-5-17-1-A": {
+        "IP": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-1-5-17-1-A_S1_L001_R1_001.fastq.gz"
+        ],
+        "Input": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-7-5-17-12-A_S29_L005_R1_001.fastq.gz"
+        ]
+    },
+    "Lan-1-5-17-1-B": {
+        "IP": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-1-5-17-1-B_S2_L001_R1_001.fastq.gz"
+        ],
+        "Input": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-8-5-12-B_S42_L006_R1_001.fastq.gz"
+        ]
+    },
+    "Lan-1-5-17-1-C": {
+        "IP": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-1-5-17-1-C_S3_L001_R1_001.fastq.gz"
+        ],
+        "Input": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-7-5-17-12-C_S30_L005_R1_001.fastq.gz"
+        ]
+    },
+    "Lan-1-5-17-1-D": {
+        "IP": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-1-5-17-1-D_S4_L001_R1_001.fastq.gz"
+        ],
+        "Input": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-7-5-17-12-D_S31_L005_R1_001.fastq.gz"
+        ]
+    },
+    "Lan-1-5-17-1-E": {
+        "IP": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-1-5-17-1-E_S5_L001_R1_001.fastq.gz"
+        ],
+        "Input": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-7-5-17-12-A_S29_L005_R1_001.fastq.gz"
+        ]
+    },
+    "Lan-1-5-17-1-F": {
+        "IP": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-1-5-17-1-F_S6_L001_R1_001.fastq.gz"
+        ],
+        "Input": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-8-5-12-B_S42_L006_R1_001.fastq.gz"
+        ]
+    },
+    "Lan-1-5-17-1-G": {
+        "IP": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-1-5-17-1-G_S7_L001_R1_001.fastq.gz"
+        ],
+        "Input": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-7-5-17-12-C_S30_L005_R1_001.fastq.gz"
+        ]
+    },
+    "Lan-2-5-17-3-A": {
+        "IP": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-2-5-17-3-A_S8_L002_R1_001.fastq.gz"
+        ],
+        "Input": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-7-5-17-12-A_S29_L005_R1_001.fastq.gz"
+        ]
+    },
+    "Lan-2-5-17-3-B": {
+        "IP": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-2-5-17-3-B_S9_L002_R1_001.fastq.gz"
+        ],
+        "Input": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-8-5-12-B_S42_L006_R1_001.fastq.gz"
+        ]
+    },
+    "Lan-2-5-17-3-C": {
+        "IP": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-2-5-17-3-C_S10_L002_R1_001.fastq.gz"
+        ],
+        "Input": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-7-5-17-12-C_S30_L005_R1_001.fastq.gz"
+        ]
+    },
+    "Lan-2-5-17-3-D": {
+        "IP": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-2-5-17-3-D_S11_L002_R1_001.fastq.gz"
+        ],
+        "Input": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-7-5-17-12-D_S31_L005_R1_001.fastq.gz"
+        ]
+    },
+    "Lan-8-5-17-1-H": {
+        "IP": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-8-5-17-1-H_S36_L006_R1_001.fastq.gz"
+        ],
+        "Input": [
+            "/rsrch2/genomic_med/krai/zheng-ChIPseq/fastqs/Lan-7-5-17-12-D_S31_L005_R1_001.fastq.gz"
+        ]
+    }
+}

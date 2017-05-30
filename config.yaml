@@ -15,5 +15,6 @@ target_reads: 15000000
 
 # Path to a JSON file with samples and their corresponding FASTQ files.
 SAMPLES: './SRR.txt'
+SAMPLES_JSON: './samples.json'
 
 CLUSTER_JSON: './cluster.json'

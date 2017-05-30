@@ -8,9 +8,9 @@
         "MaxMem": 16384,
         "queue" : "short"
     },
-    "fastq_dump" :
+    "merge_fastqs" :
     {
-        "time" : "1:00",
+        "time" : "0:30",
         "cpu" : 1
     },
     "fastqc":
@@ -88,6 +88,7 @@
     "superEnhancer":
     {
         "time": "8:00",
+        "cpu": 4,
         "queue" : "medium"
     }
 }

@@ -93,7 +93,7 @@ conda create -n snakemake python=3 -c bioconda multiqc snakemake deeptools
 source activate snakemake
 ```
 
-## STEPS 
+## STEPS for fastq files from GEO
 
 ### Download the sra files
 
@@ -116,15 +116,15 @@ SRR1616138      SRR1616139
 SRR1616140      SRR1616142
 SRR1616141      SRR1616142
 
-
 ```
 
+### download the sra files using the R script
 
 ```bash
 cd GEOpyflow-ChIPseq
-mkdir 01seq
-cd 01seq
-## because fastq-dump only convert the sra files to fastq to the current folder. one has to download the sra files to the 01seq folder
+mkdir fastqs
+cd fastqs
+## fastq-dump only convert the sra files to fastq to the current folderr
 ```
 
 make a shell script:
@@ -141,22 +141,40 @@ Rscript ../scripts/sraDownload.R -a 'ascp -QT -l 300m -i ~/.aspera/connect/etc/a
 `chmod u+x download.sh`
 
 ```bash
-# inside the GEOpyflow-ChIPseq/01seq folder:
+# inside the GEOpyflow-ChIPseq/fastq folder:
 cat ../SRR.txt | sed '1d' | tr "\t" "\n" | sort | uniq > srr_unique.txt
 
 ## only have 4 jobs in parallel, good behavior on a cluster
 cat srr_unique.txt | parallel -j 4 ./download.sh {}
 
-# all the sra files will be downloaded in the current folder.
+# all the sra files will be downloaded in the current fastqs folder.
 ```
 
-Now you have all `sra` files downloaded into `01seq` folder, proceed below:
+Now you have all `sra` files downloaded into `fastqs` folder, proceed below:
 
-### dry run to test 
+### convert `sra` to `fastqs` and compress to .gz files 
 
 ```bash
+
+## you can use a for loop to fastq-dump the downloaded sra files.
+find *sra| parallel fastq-dump {}
+
+find *fastq | parallel bgzip {}
+
+## save some space
+rm *fastq
+
 # go gack to the GEOpyflow-ChIPseq folder
 cd ..
+
+python3 sample2json.py --fastq_dir fastqs/ --meta SRR.txt 
+```
+
+A `samples.json` file will be created and some information will be printed out on the screen.
+
+### start the pipeline
+
+```bash
 ## dry run
 snakemake -np
 
@@ -189,6 +207,88 @@ Dependent jobs are submitted one by one, if some jobs failed, the pipeline will 
 ```
 
 All jobs will be submitted to the cluster on queue.  This is useful if you know your jobs will succeed for most of them and the jobs are on queue to gain priority.
+
+## process the custom data produced from the sequencing core.
+
+Different People have different naming conventions, to accomondate this situation, I require them to give me a `meta.txt` tab delimited file to have the IP and Input pair name information.
+
+The `sample2json.py` script assumes that the name  of the IP and Input in the `meta.txt` file exist in the fastq files.
+
+e.g.
+
+```bash
+cd GEOpyflow-ChIPseq
+cat meta.txt
+IP      Input   factor  reference
+Lan-1-5-17-1-A  Lan-7-5-17-12-A H3K4me3 mouse+drosophila
+Lan-1-5-17-1-B  Lan-8-5-12-B    H3K4me3 mouse+drosophila
+Lan-1-5-17-1-C  Lan-7-5-17-12-C H3K4me3 mouse+drosophila
+Lan-1-5-17-1-D  Lan-7-5-17-12-D H3K4me3 mouse+drosophila
+Lan-1-5-17-1-E  Lan-7-5-17-12-A KDM5D   mouse
+Lan-1-5-17-1-F  Lan-8-5-12-B    KDM5D   mouse
+Lan-1-5-17-1-G  Lan-7-5-17-12-C KDM5D   mouse
+Lan-2-5-17-3-A  Lan-7-5-17-12-A Tbx3    mouse
+Lan-2-5-17-3-B  Lan-8-5-12-B    Tbx3    mouse
+Lan-2-5-17-3-C  Lan-7-5-17-12-C Tbx3    mouse
+Lan-2-5-17-3-D  Lan-7-5-17-12-D Tbx3    mouse
+Lan-8-5-17-1-H  Lan-7-5-17-12-D KDM5D   mouse
+
+## only the first 2 columns are required.
+
+## make a samples.json file
+python3 sample2json.py --fastq_dir dir/to/fastqs/ --meta meta.txt 
+```
+
+The real name of the fastq files:  
+
+`Lan-1-5-17-1-G_S7_L001_R1_001.fastq.gz`    
+`Lan-7-5-17-12-C_S30_L005_R1_001.fastq.gz`
+
+check the example `samples.json` file in the repo.
+
+Now, the same as the steps as processing the `sra` files
+
+```bash
+# dry run
+pyflow-ChIPseq.sh  -np 
+```
+
+
+### Extra notes on file names
+If one set up a lab, and it is necessary to have consistent file naming. `TCGA`project is a great example for us to follow. A [barcode system](https://wiki.nci.nih.gov/display/TCGA/TCGA+barcode)can make your life a lot easier for downstream analysis.
+
+![](./TCGA.png)
+
+Similarily, for a ChIP-seq project, it is important to have consistent naming.
+In Dr.Kunal Rai'lab. We adopted a barcoding system similar to TCGA"
+
+e.g.:
+`TCGA-SKCM-M028-11-P008-A-NC-CJT-T`
+
+`TCGA` is the big project name;  
+`SKCM` is the tumor name;
+`M028` is the sample name (this should be an unique identifier);  
+`11` is the sequencing tag;
+we use `11` to denote first time IP, first time sequencing, if the reads number is too few, but the IP worked, we just need to resequence the same library. for the resequencing sample, we will use `12` for this. if the total reads number is still too low, `13` could be used. 21` will be second time IP and first time sequencing. etc.  
+`P008` is the plate number of that IP experiment, we now use 96-well plate for ChIP-seq, we use this id to track which plate the samples are from.  
+`A` is the chromatin mark name or transcription factor name. we have a naming map for this:  
+`A` is H3K4me1, `B` is H3K9me3 and `G` is for Input etc.  
+
+The other barcode areas can be used for other information. `NC` means the samples were sequenced in north campus.
+
+It saves me a lot in the downstream processing. the barcode can be captured by a universal regular expression from the fastq.gz files.
+
+A real experiment comes a fastq.gz name like this 
+
+`TCGA-SKCM-M028-R1-P008-C-NC-CJT-T_TTAGGC_L001_R1_006.fastq.gz`  
+
+multiplexing is very common nowadays, the sequencing reads for the same sample may come from different lanes, after de-multiplexing, multiple files for the same sample will be put in the same folder. If you name your files in a consistent way, you can easily merge all the fastq files before mapping. (for DNA sequencing, it is recommended to map the fastq files independently and then merge the mapped bam files with read-group to identify which lane it is from).
+
+It also helps for merging the fastq files from two different rounds of sequencing. I know sequencing tag `11` and `12` with the same sample name and chromatin mark name are for the same sample, so I can merge them together programatically.
+
+I also know that `G` is a Input control sample, I can then call peaks, make Input subtracted bigwigs etc using a IP vs Input pattern. (A_vs_G, B_vs_G).
+
+Many other people out of our lab let me process their data, I can not enforce naming of the files before they carry out the experiments. That's why I require them to give me a `meta.txt` file instead.
 
 ### job control
 

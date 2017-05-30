@@ -9,20 +9,23 @@ localrules: all
 
 # load cluster config file
 CLUSTER = json.load(open(config['CLUSTER_JSON']))
+FILES = json.load(open(config['SAMPLES_JSON']))
 
 import csv
 import os
 
-CASES = []
-CONTROLS = []
+SAMPLES = sorted(FILES.keys())
 
-with open(config['SAMPLES'], "r") as f:
-    reader = csv.reader(f, delimiter = "\t")
-    # skip the header
-    header = next(reader)
-    for row in reader:
-        CASES.append(row[0])
-        CONTROLS.append(row[1])
+## will be named as sample_IP  sample_Input
+MARK_SAMPLES = []
+for sample in SAMPLES:
+    for mark in FILES[sample].keys():
+        MARK_SAMPLES.append(sample + "_" + mark) 
+
+
+CONTROLS = [sample for sample in MARK_SAMPLES if '_Input' in sample]
+CASES = [sample for sample in MARK_SAMPLES if '_Input'  not in sample]
+
 
 ## multiple samples may use the same control input files
 CONTROLS_UNIQUE = list(set(CONTROLS))
@@ -63,20 +66,21 @@ rule all:
     input: ALL_FASTQC + ALL_BAM + ALL_DOWNSAMPLE_BAM + ALL_INDEX + ALL_DOWNSAMPLE_INDEX + ALL_PHATOM + ALL_PEAKS + ALL_BIGWIG + ALL_inputSubtract_BIGWIG + ALL_FASTQ + ALL_FLAGSTAT + ALL_QC + ALL_SUPER
 
 
+## get a list of fastq.gz files for the same mark, same sample
+def get_fastq(wildcards):
+    sample = "_".join(wildcards.sample.split("_")[0:-1])
+    mark = wildcards.sample.split("_")[-1]
+    return FILES[sample][mark]
+
 ## now only for single-end ChIPseq, 
-rule fastq_dump:
-    input: "01seq/{sample}.sra"      
+rule merge_fastqs:
+    input: get_fastq      
     output: "01seq/{sample}.fastq"
-    log: "00log/{sample}_fastq_dump"
-    threads: CLUSTER["fastq_dump"]["cpu"]
-    params: 
-        jobname = "{sample}",
-        outputdir = os.path.dirname(srcdir("00log"))
-    message: "fastq-dump {input} "
-    run: 
-        #fastq-dump convert sra to fastq in the current folder
-        sra = os.path.basename(input[0])
-        shell("cd 01seq; fastq-dump {sra} 2> {log}".format(sra = sra, log = os.path.join(params.outputdir,log[0])))
+    log: "00log/{sample}_unzip"
+    threads: CLUSTER["merge_fastqs"]["cpu"]
+    params: jobname = "{sample}"
+    message: "merging fastqs gunzip -c {input} > {output}"
+    shell: "gunzip -c {input} > {output} 2> {log}"
 
 rule fastqc:
     input:  "01seq/{sample}.fastq"
