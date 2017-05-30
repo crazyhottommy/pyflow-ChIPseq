@@ -45,7 +45,7 @@ ALL_PEAKS.extend(expand("09peak_macs2/{case}_vs_{control}_macs2_peaks.xls", zip,
 
 ALL_inputSubtract_BIGWIG = expand("06bigwig_inputSubtract/{case}_subtract_{control}.bw", zip, case=CASES, control=CONTROLS)
 
-ALL_SUPER = expand("13superEnhancer/{case}_vs_{control}-super/", zip, case=CASES, control=CONTROLS)
+ALL_SUPER = expand("11superEnhancer/{case}_vs_{control}-super/", zip, case=CASES, control=CONTROLS)
 
 
 ALL_SAMPLES = CASES + CONTROLS_UNIQUE
@@ -272,7 +272,7 @@ rule superEnhancer:
     input : "04aln_downsample/{control}-downsample.sorted.bam", "04aln_downsample/{case}-downsample.sorted.bam", 
             "04aln_downsample/{control}-downsample.sorted.bam.bai", "04aln_downsample/{case}-downsample.sorted.bam.bai",
             "08peak_macs1/{case}_vs_{control}_macs1_peaks.bed"
-    output: "13superEnhancer/{case}_vs_{control}-super/"
+    output: "11superEnhancer/{case}_vs_{control}-super/"
     log: "00log/{case}_superEnhancer.log"
     params: 
             jobname = "{case}", 
