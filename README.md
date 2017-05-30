@@ -255,28 +255,28 @@ pyflow-ChIPseq.sh  -np
 
 
 ### Extra notes on file names
-If one set up a lab, and it is necessary to have consistent file naming. `TCGA`project is a great example for us to follow. A [barcode system](https://wiki.nci.nih.gov/display/TCGA/TCGA+barcode)can make your life a lot easier for downstream analysis.
+If one set up a lab, it is necessary to have consistent file naming across all the projects. `TCGA`project is a great example for us to follow. A [barcode system](https://wiki.nci.nih.gov/display/TCGA/TCGA+barcode) can make your life a lot easier for downstream analysis.
 
 ![](./TCGA.png)
 
 Similarily, for a ChIP-seq project, it is important to have consistent naming.
-In Dr.Kunal Rai'lab. We adopted a barcoding system similar to TCGA"
+In Dr.Kunal Rai'lab. We adopted a barcoding system similar to TCGA:
 
-e.g.:
+e.g.
 `TCGA-SKCM-M028-11-P008-A-NC-CJT-T`
 
 `TCGA` is the big project name;  
 `SKCM` is the tumor name;
 `M028` is the sample name (this should be an unique identifier);  
 `11` is the sequencing tag;
-we use `11` to denote first time IP, first time sequencing, if the reads number is too few, but the IP worked, we just need to resequence the same library. for the resequencing sample, we will use `12` for this. if the total reads number is still too low, `13` could be used. 21` will be second time IP and first time sequencing. etc.  
+we use `11` to denote first time IP, first time sequencing, if the reads number is too few, but the IP worked, we just need to resequence the same library. for the resequencing sample, we will use `12` for this. if the total reads number is still too low, `13` could be used. `21` will be second time IP and first time sequencing. etc.  
 `P008` is the plate number of that IP experiment, we now use 96-well plate for ChIP-seq, we use this id to track which plate the samples are from.  
 `A` is the chromatin mark name or transcription factor name. we have a naming map for this:  
 `A` is H3K4me1, `B` is H3K9me3 and `G` is for Input etc.  
 
 The other barcode areas can be used for other information. `NC` means the samples were sequenced in north campus.
 
-It saves me a lot in the downstream processing. the barcode can be captured by a universal regular expression from the fastq.gz files.
+It saves me a lot in the downstream processing. The barcode can be captured by a universal regular expression from the fastq.gz files.
 
 A real experiment comes a fastq.gz name like this 
 
@@ -286,7 +286,7 @@ multiplexing is very common nowadays, the sequencing reads for the same sample m
 
 It also helps for merging the fastq files from two different rounds of sequencing. I know sequencing tag `11` and `12` with the same sample name and chromatin mark name are for the same sample, so I can merge them together programatically.
 
-I also know that `G` is a Input control sample, I can then call peaks, make Input subtracted bigwigs etc using a IP vs Input pattern. (A_vs_G, B_vs_G).
+I also know that `G` is a Input control sample, I can then call peaks, make Input subtracted bigwigs etc using a IP vs Input pattern. (A_vs_G, B_vs_G). Same idea can be used for `tumor` and `control` for whole genome sequencing when calling mutations and copynumber.
 
 Many other people out of our lab let me process their data, I can not enforce naming of the files before they carry out the experiments. That's why I require them to give me a `meta.txt` file instead.
 
