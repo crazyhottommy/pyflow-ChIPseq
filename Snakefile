@@ -274,6 +274,7 @@ rule superEnhancer:
             "08peak_macs1/{case}_vs_{control}_macs1_peaks.bed"
     output: "11superEnhancer/{case}_vs_{control}-super/"
     log: "00log/{case}_superEnhancer.log"
+    threads: 4
     params: 
             jobname = "{case}", 
             outputdir = os.path.dirname(srcdir("00log"))

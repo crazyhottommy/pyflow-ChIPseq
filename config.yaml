@@ -1,16 +1,17 @@
 
 idx_bt1: /scratch/genomic_med/apps/annot/indexes/bowtie/hg19
 macs_g: hs
-macs_pvalue: 10e-5
+macs_pvalue: 1e-5
 macs2_g: hs
-macs2_pvalue: 10e-5
-macs2_pvalue_broad: 10e-5
+macs2_pvalue: 1e-5
+macs2_pvalue_broad: 1e-5
 
 #superEnhancer genome
 rose_g: hg19
 
-#number of reads downsample to
-target_reads: 15000000
+#number of reads downsample to, I set to 50 million, if reads number smaller than 
+## 50 million, downsample will keep the orignal reads
+target_reads: 50000000
 
 
 # Path to a JSON file with samples and their corresponding FASTQ files.
