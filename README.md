@@ -1,4 +1,4 @@
-# GEOpyflow-ChIPseq
+# pyflow-ChIPseq
 a snakemake pipeline to process ChIP-seq files from GEO
 
 I have so many people asking me to process a public GEO ChIP-seq data set for them. I hate to repeat the same steps and decide to make a pipeline for it.
@@ -8,6 +8,13 @@ switch to a different branch to see the codes. now I have `shark` branch for the
 **UPDATE** 05/30/2017. Now, the pipeline can handle in-house data as well.
 
 Now, this is working on LSF, I will have another branch for Moab.
+
+### Citation
+
+I created a doi on [zenodo](https://zenodo.org/).  
+You can cite:
+
+[![DOI](https://zenodo.org/badge/89386223.svg)](https://zenodo.org/badge/latestdoi/89386223)
 
 ### work flow of the pipeline
 
@@ -82,7 +89,7 @@ mkdir /rsch2/genomic_med/krai/workdir/
 
 cd /rsch2/genomic_med/krai/workdir/
 
-git clone https://github.com/crazyhottommy/GEOpyflow-ChIPseq
+git clone https://github.com/crazyhottommy/pyflow-ChIPseq
 
 cd GEOpyflow-ChIPseq
 
