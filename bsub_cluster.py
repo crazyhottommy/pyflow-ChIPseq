@@ -57,7 +57,7 @@ queue = job_properties["cluster"]["queue"]
 EmailNotice = job_properties["cluster"]["EmailNotice"]
 email = job_properties["cluster"]["email"]
 
-cmdline = 'bsub -n {cpu} -W {time} -u {email} -q {queue} -J {jobname} -o bsub_log/ -e bsub_log/'.format(cpu = cpu, time = time, email = email, queue = queue, jobname = jobname)
+cmdline = 'bsub -n {cpu} -W {time} -u {email} -q {queue} -J {jobname} -o bsub_log/{out}.out -e bsub_log/{err}.err'.format(cpu = cpu, time = time, email = email, queue = queue, jobname = jobname, out = jobname, err = jobname)
 
 cmdline += ' -M {} -R rusage[mem={}] '.format(int(mem), int(mem))
 
