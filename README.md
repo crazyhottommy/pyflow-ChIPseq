@@ -169,12 +169,12 @@ Now you have all `sra` files downloaded into `fastqs` folder, proceed below:
 ```bash
 
 ## you can use a for loop to fastq-dump the downloaded sra files.
-find *sra| parallel fastq-dump {}
+find *sra| parallel -j 4  fastq-dump {}
 
-find *fastq | parallel bgzip {}
+find *fastq | parallel -j 4  bgzip {}
 
 ## save some space
-rm *fastq
+rm *sra
 
 # go gack to the GEOpyflow-ChIPseq folder
 cd ..
