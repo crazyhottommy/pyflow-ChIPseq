@@ -141,12 +141,13 @@ cd fastqs
 make a shell script:
 `download.sh`
 
+download the sqlite database from http://dl.dropbox.com/u/51653511/SRAmetadb.sqlite.gz and unzip it. place it in the `scripts` folder
 ```bash
 # /bin/bash
 set -euo pipefail
 
 ## you will need to change the ascp command to get the right path
-Rscript ../scripts/sraDownload.R -a 'ascp -QT -l 300m -i ~/.aspera/connect/etc/asperaweb_id_dsa.openssh' $1
+Rscript ../scripts/sraDownload.R -a 'ascp -QT -l 300m -i ~/.aspera/connect/etc/asperaweb_id_dsa.openssh' -d ../scripts/SRAmetadb.sqlite $1
 ```
 
 `chmod u+x download.sh`
