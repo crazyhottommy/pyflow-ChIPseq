@@ -6,6 +6,7 @@ macs2_g: hs
 macs2_pvalue: 1e-5
 macs2_pvalue_broad: 1e-5
 
+control: 'Input'
 #superEnhancer genome
 rose_g: hg19
 

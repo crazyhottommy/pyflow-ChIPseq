@@ -16,18 +16,20 @@ import os
 
 SAMPLES = sorted(FILES.keys())
 
-## will be named as sample_IP  sample_Input
+## list all samples by sample_name and sample_type
 MARK_SAMPLES = []
 for sample in SAMPLES:
-    for mark in FILES[sample].keys():
-        MARK_SAMPLES.append(sample + "_" + mark) 
+    for sample_type in FILES[sample].keys():
+        MARK_SAMPLES.append(sample + "_" + sample_type)
 
 
-CONTROLS = [sample for sample in MARK_SAMPLES if '_Input' in sample]
-CASES = [sample for sample in MARK_SAMPLES if '_Input'  not in sample]
+# which sample_type is used as control for calling peaks: e.g. Input, IgG...
+CONTROL = config["control"]
+CONTROLS = [sample for sample in MARK_SAMPLES if CONTROL in sample]
+CASES = [sample for sample in MARK_SAMPLES if CONTROL not in sample]
 
 
-## multiple samples may use the same control input files
+## multiple samples may use the same control input/IgG files
 CONTROLS_UNIQUE = list(set(CONTROLS))
 
 
@@ -41,7 +43,6 @@ CASE_BAM = expand("03aln/{sample}.sorted.bam", sample=CASES)
 ALL_PEAKS = expand("08peak_macs1/{case}_vs_{control}_macs1_peaks.bed", zip, case=CASES, control=CONTROLS)
 ALL_PEAKS.extend(expand("08peak_macs1/{case}_vs_{control}_macs1_nomodel_peaks.bed", zip, case=CASES, control=CONTROLS))
 ALL_PEAKS.extend(expand("09peak_macs2/{case}_vs_{control}_macs2_peaks.xls", zip, case=CASES, control=CONTROLS))
-
 
 ALL_inputSubtract_BIGWIG = expand("06bigwig_inputSubtract/{case}_subtract_{control}.bw", zip, case=CASES, control=CONTROLS)
 
