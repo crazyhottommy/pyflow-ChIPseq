@@ -91,7 +91,7 @@ cd /rsch2/genomic_med/krai/workdir/
 
 git clone https://github.com/crazyhottommy/pyflow-ChIPseq
 
-cd GEOpyflow-ChIPseq
+cd pyflow-ChIPseq
 
 ## go to downsampling branch. shark is LSF system
 git checkout shark
@@ -108,31 +108,30 @@ source activate snakemake
 
 ### Download the sra files
 
-Prepare a txt file `SRR.txt` which has two columns: IP and Input:
+Prepare a txt file `SRR.txt` which has three columns: sample_name, fastq_name, and factor:
 
 e.g.
 
 ```bash
 cat SRR.txt
 
-IP      Input
-SRR3144652      SRR3144654
-SRR3144653      SRR3144654
-SRR2518123      SRR2518124
-SRR2518125      SRR2518126
-SRR2518127      SRR2518128
-SRR2518129      SRR2518130
-SRR1616137      SRR1616139
-SRR1616138      SRR1616139
-SRR1616140      SRR1616142
-SRR1616141      SRR1616142
+sample_name fastq_name  factor 
+MOLM-14_DMSO1_5 SRR2518123   BRD4     
+MOLM-14_DMSO1_5 SRR2518124  Input
+MOLM-14_DMSO2_6 SRR2518125  BRD4
+MOLM-14_DMSO2_6 SRR2518126  Input
+
 
 ```
+
+You can have mulitple different factors for the same sample_name.  
+
+`sample_name_factor` will be used to name the output. e.g. :`MOLM-14_DMSO1_5_BRD4.sorted.bam`
 
 ### download the sra files using the R script
 
 ```bash
-cd GEOpyflow-ChIPseq
+cd pyflow-ChIPseq
 mkdir fastqs
 cd fastqs
 ## fastq-dump only convert the sra files to fastq to the current folderr
@@ -153,8 +152,8 @@ Rscript ../scripts/sraDownload.R -a 'ascp -QT -l 300m -i ~/.aspera/connect/etc/a
 `chmod u+x download.sh`
 
 ```bash
-# inside the GEOpyflow-ChIPseq/fastq folder:
-cat ../SRR.txt | sed '1d' | tr "\t" "\n" | sort | uniq > srr_unique.txt
+# inside the pyflow-ChIPseq/fastq folder:
+cat ../SRR.txt | sed '1d' | cut-f2 | sort | uniq > srr_unique.txt
 
 ## only have 4 jobs in parallel, good behavior on a cluster
 cat srr_unique.txt | parallel -j 4 ./download.sh {}
@@ -176,7 +175,7 @@ find *fastq | parallel -j 4  bgzip {}
 ## save some space
 rm *sra
 
-# go gack to the GEOpyflow-ChIPseq folder
+# go gack to the pyflow-ChIPseq folder
 cd ..
 
 python3 sample2json.py --fastq_dir fastqs/ --meta SRR.txt 
@@ -191,7 +190,7 @@ A `samples.json` file will be created and some information will be printed out o
 snakemake -np
 
 ## test for one sample
-./pyflow-ChIPseq.sh  07bigwig/SRR2518125.bw
+./pyflow-ChIPseq.sh  07bigwig/SRR2518123.bw
 
 ```
 
@@ -222,28 +221,44 @@ All jobs will be submitted to the cluster on queue.  This is useful if you know 
 
 ## process the custom data produced from the sequencing core.
 
-Different People have different naming conventions, to accomondate this situation, I require them to give me a `meta.txt` tab delimited file to have the IP and Input pair name information.
+Different People have different naming conventions, to accomondate this situation, I require them to give me a `meta.txt` tab delimited file to have the sample information.
 
-The `sample2json.py` script assumes that the name  of the IP and Input in the `meta.txt` file exist in the fastq files.
+The `sample2json.py` script assumes that the fastq_name in the `meta.txt` file exist in the fastq files. Only the first three columns will be used.
+`factor`s from the same `sample_name` will be made into one group.
 
-e.g.
+set the `control` which you are going to use for peak calling. e.g. Input, IgG
+
 
 ```bash
-cd GEOpyflow-ChIPseq
+cd pyflow-ChIPseq
 cat meta.txt
-IP      Input   factor  reference
-Lan-1-5-17-1-A  Lan-7-5-17-12-A H3K4me3 mouse+drosophila
-Lan-1-5-17-1-B  Lan-8-5-12-B    H3K4me3 mouse+drosophila
-Lan-1-5-17-1-C  Lan-7-5-17-12-C H3K4me3 mouse+drosophila
-Lan-1-5-17-1-D  Lan-7-5-17-12-D H3K4me3 mouse+drosophila
-Lan-1-5-17-1-E  Lan-7-5-17-12-A KDM5D   mouse
-Lan-1-5-17-1-F  Lan-8-5-12-B    KDM5D   mouse
-Lan-1-5-17-1-G  Lan-7-5-17-12-C KDM5D   mouse
-Lan-2-5-17-3-A  Lan-7-5-17-12-A Tbx3    mouse
-Lan-2-5-17-3-B  Lan-8-5-12-B    Tbx3    mouse
-Lan-2-5-17-3-C  Lan-7-5-17-12-C Tbx3    mouse
-Lan-2-5-17-3-D  Lan-7-5-17-12-D Tbx3    mouse
-Lan-8-5-17-1-H  Lan-7-5-17-12-D KDM5D   mouse
+sample_name     fastq_name      factor  reference
+sample1 Li-Lane-1-1A-062817     CST-CHD1        mouse
+sample1 Li-Lane-1-1C-062817     Bethal-CHD1     mouse
+sample1 Li-Lane-1-1E-062817     IgG     mouse
+sample1 Li-Lane-4-7E-062817     Input   mouse
+sample2 Li-Lane-1-1B-062817     CST-CHD1        mouse
+sample2 Li-Lane-1-1D-062817     Bethal-CHD1     mouse
+sample2 Li-Lane-1-1F-062817     IgG     mouse
+sample2 Li-Lane-4-7F-062817     Input   mouse
+sample3 Li-Lane-2-3C-062817     SOX2    mouse
+sample3 Li-Lane-2-3D-062817     H3K27Ac mouse
+sample3 Li-Lane-4-7G-062817     Input   mouse
+sample4 Li-Lane-2-3E-062817     H3K9me3 mouse
+sample4 Li-Lane-3-5A-062817     H3K27Ac mouse
+sample4 Li-Lane-3-5E-062817     MYC     mouse
+sample4 Li-Lane-2-7H-062817     Input   mouse
+sample5 Li-Lane-2-3F-062817     H3K9me3 mouse
+sample5 Li-Lane-3-5B-062817     H3K27Ac mouse
+sample5 Li-Lane-3-9A-062817     Input   mouse
+sample6 Li-Lane-2-3G-062817     H3K9me3 mouse
+sample6 Li-Lane-3-5C-062817     H3K27Ac mouse
+sample6 Li-Lane-4-9B-062817     Input   mouse
+sample7 Li-Lane-2-3H-062817     H3K9me3 mouse
+sample7 Li-Lane-3-5D-062817     H3K27Ac mouse
+sample7 Li-Lane-3-5H-062817     MYC     mouse
+sample7 Li-Lane-4-9C-062817     Input   mouse
+
 
 ## only the first 2 columns are required.
 
@@ -253,8 +268,7 @@ python3 sample2json.py --fastq_dir dir/to/fastqs/ --meta meta.txt
 
 The real name of the fastq files:  
 
-`Lan-1-5-17-1-G_S7_L001_R1_001.fastq.gz`    
-`Lan-7-5-17-12-C_S30_L005_R1_001.fastq.gz`
+`/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-1-1C-062817/Li-Lane-1-1C-062817_S24_L004_R1_001.fastq.gz`    
 
 check the example `samples.json` file in the repo.
 
@@ -386,7 +400,7 @@ snakemake -n -R `snakemake --list-code-changes`
 
 ### TO DO list
 
-**provide a output directory** now everything will be output in the current GEOpyflow-ChIPseq directory in a structured fasion. : `00log`, `01seq`, `02fqc`, `03aln` etc  
+**provide a output directory** now everything will be output in the current pyflow-ChIPseq directory in a structured fasion. : `00log`, `01seq`, `02fqc`, `03aln` etc  
 **work for paired-end ChIPseq as well** now only for single-end.   
 **put everything in docker**    
 
