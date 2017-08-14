@@ -260,7 +260,7 @@ sample7 Li-Lane-3-5H-062817     MYC     mouse
 sample7 Li-Lane-4-9C-062817     Input   mouse
 
 
-## only the first 2 columns are required.
+## only the first 3 columns are required.
 
 ## make a samples.json file
 python3 sample2json.py --fastq_dir dir/to/fastqs/ --meta meta.txt 
