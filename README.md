@@ -404,4 +404,3 @@ snakemake -n -R `snakemake --list-code-changes`
 **work for paired-end ChIPseq as well** now only for single-end.   
 **put everything in docker**    
 
->>>>>>> shark
