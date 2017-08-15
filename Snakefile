@@ -37,17 +37,20 @@ CONTROLS_UNIQUE = list(set(CONTROLS))
 CONTROL_BAM = expand("03aln/{sample}.sorted.bam", sample=CONTROLS_UNIQUE)
 CASE_BAM = expand("03aln/{sample}.sorted.bam", sample=CASES)
 
+## peaks and bigwigs
+ALL_PEAKS = []
+ALL_inputSubtract_BIGWIG = []
+ALL_SUPER = []
 
-## create target for peak-calling: will call the rule call_peaks in order to generate bed files
-## note: the "zip" function allow the correct pairing of the BAM files
-ALL_PEAKS = expand("08peak_macs1/{case}_vs_{control}_macs1_peaks.bed", zip, case=CASES, control=CONTROLS)
-ALL_PEAKS.extend(expand("08peak_macs1/{case}_vs_{control}_macs1_nomodel_peaks.bed", zip, case=CASES, control=CONTROLS))
-ALL_PEAKS.extend(expand("09peak_macs2/{case}_vs_{control}_macs2_peaks.xls", zip, case=CASES, control=CONTROLS))
-
-ALL_inputSubtract_BIGWIG = expand("06bigwig_inputSubtract/{case}_subtract_{control}.bw", zip, case=CASES, control=CONTROLS)
-
-ALL_SUPER = expand("11superEnhancer/{case}_vs_{control}-super/", zip, case=CASES, control=CONTROLS)
-
+for case in CASES:
+    sample = "_".join(case.split("_")[0:-1])
+    control = sample + "_" + CONTROL
+    if control in CONTROLS:
+        ALL_PEAKS.append("08peak_macs1/{}_vs_{}_macs1_peaks.bed".format(case, control))
+        ALL_PEAKS.append("08peak_macs1/{}_vs_{}_macs1_nomodel_peaks.bed".format(case, control))
+        ALL_PEAKS.append("09peak_macs2/{}_vs_{}_macs2_peaks.xls".format(case, control))
+        ALL_inputSubtract_BIGWIG.append("06bigwig_inputSubtract/{}_subtract_{}.bw".format(case, control))
+        ALL_SUPER.append("11superEnhancer/{}_vs_{}-super/".format(case, control))
 
 ALL_SAMPLES = CASES + CONTROLS_UNIQUE
 ALL_BAM     = CONTROL_BAM + CASE_BAM
@@ -73,9 +76,9 @@ def get_fastq(wildcards):
     mark = wildcards.sample.split("_")[-1]
     return FILES[sample][mark]
 
-## now only for single-end ChIPseq, 
+## now only for single-end ChIPseq,
 rule merge_fastqs:
-    input: get_fastq      
+    input: get_fastq
     output: "01seq/{sample}.fastq"
     log: "00log/{sample}_unzip"
     threads: CLUSTER["merge_fastqs"]["cpu"]
@@ -102,11 +105,11 @@ rule align:
     input:  "01seq/{sample}.fastq"
     output: "03aln/{sample}.sorted.bam", "00log/{sample}.align"
     threads: CLUSTER["align"]["cpu"]
-    params: 
+    params:
             bowtie = "--chunkmbs 320 -m 1 --best -p 5 ",
             jobname = "{sample}"
     message: "aligning {input}: {threads} threads"
-    log: 
+    log:
         bowtie = "00log/{sample}.align",
         markdup = "00log/{sample}.markdup"
     shell:
@@ -171,7 +174,7 @@ rule down_sample:
             line = f.readlines()[4]
             match_number = re.match(r'(\d.+) \+.+', line)
             total_reads = int(match_number.group(1))
-                   
+
         target_reads = config["target_reads"] # 15million reads  by default, set up in the config.yaml file
         if total_reads > target_reads:
             down_rate = target_reads/total_reads
@@ -179,7 +182,7 @@ rule down_sample:
             down_rate = 1
 
         shell("sambamba view -f bam -t 5 --subsampling-seed=3 -s {rate} {inbam} | samtools sort -m 2G -@ 5 -T {outbam}.tmp > {outbam} 2> {log}".format(rate = down_rate, inbam = input[0], outbam = output[0], log = log))
-        
+
         shell("samtools index {outbam}".format(outbam = output[0]))
 
 rule make_inputSubtract_bigwigs:
@@ -214,7 +217,7 @@ rule make_bigwigs:
 rule call_peaks_macs1:
     input: control = "04aln_downsample/{control}-downsample.sorted.bam", case="04aln_downsample/{case}-downsample.sorted.bam"
     output: "08peak_macs1/{case}_vs_{control}_macs1_peaks.bed", "08peak_macs1/{case}_vs_{control}_macs1_nomodel_peaks.bed"
-    log: 
+    log:
         macs1 = "00log/{case}_vs_{control}_call_peaks_macs1.log",
         macs1_nomodel = "00log/{case}_vs_{control}_call_peaks_macs1_nomodel.log"
     params:
@@ -228,7 +231,7 @@ rule call_peaks_macs1:
         macs14 -t {input.case} \
             -c {input.control} --keep-dup all -f BAM -g {config[macs_g]} \
             --outdir 08peak_macs1 -n {params.name1} -p {config[macs_pvalue]} &> {log.macs1}
-        
+
         # nomodel for macs14, shift-size will be 100 bp (e.g. fragment length of 200bp)
         # can get fragment length from the phantompeakqual. Now set it to 200 bp for all.
         macs14 -t {input.case} \
@@ -254,14 +257,14 @@ rule call_peaks_macs2:
         """
 
 rule multiQC:
-    input : 
+    input :
         expand("00log/{sample}.align", sample = ALL_SAMPLES),
         expand("03aln/{sample}.sorted.bam.flagstat", sample = ALL_SAMPLES),
         expand("02fqc/{sample}_fastqc.zip", sample = ALL_SAMPLES)
     output: "10multiQC/multiQC_log.html"
     log: "00log/multiqc.log"
     message: "multiqc for all logs"
-    shell: 
+    shell:
         """
         multiqc 02fqc 03aln 00log -o 10multiQC -d -f -v -n multiQC_log 2> {log}
 
@@ -270,14 +273,14 @@ rule multiQC:
 ## ROSE has to be run inside the folder where ROSE_main.py resides.
 ## symbolic link the rose folder to the snakefile folder can be one alternative solution.
 rule superEnhancer:
-    input : "04aln_downsample/{control}-downsample.sorted.bam", "04aln_downsample/{case}-downsample.sorted.bam", 
+    input : "04aln_downsample/{control}-downsample.sorted.bam", "04aln_downsample/{case}-downsample.sorted.bam",
             "04aln_downsample/{control}-downsample.sorted.bam.bai", "04aln_downsample/{case}-downsample.sorted.bam.bai",
             "08peak_macs1/{case}_vs_{control}_macs1_peaks.bed"
     output: "11superEnhancer/{case}_vs_{control}-super/"
     log: "00log/{case}_superEnhancer.log"
     threads: 4
-    params: 
-            jobname = "{case}", 
+    params:
+            jobname = "{case}",
             outputdir = os.path.dirname(srcdir("00log"))
     shell:
         """
@@ -285,4 +288,3 @@ rule superEnhancer:
         cd /scratch/genomic_med/apps/rose/default
         python ROSE_main.py -g {config[rose_g]} -i  {params.outputdir}/{input[4]} -r {params.outputdir}/{input[1]} -c {params.outputdir}/{input[0]} -o {params.outputdir}/{output}
         """
-
