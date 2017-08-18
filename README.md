@@ -226,7 +226,7 @@ Different People have different naming conventions, to accomondate this situatio
 The `sample2json.py` script assumes that the fastq_name in the `meta.txt` file exist in the fastq files. Only the first three columns will be used.
 `factor`s from the same `sample_name` will be made into one group.
 
-set the `control` which you are going to use for peak calling. e.g. Input, IgG
+set the `control` in the `config.ymal` file, which you are going to use for peak calling. e.g. Input, IgG
 
 
 ```bash
