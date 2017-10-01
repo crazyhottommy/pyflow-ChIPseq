@@ -55,6 +55,9 @@ for sample_name in sorted(FILES.keys()):
 		fastq_file = "".join(FILES[sample_name][sample_type])
 		print("sample {sample_name}'s {sample_type} fastq path is {fastq_file}".format(sample_name = sample_name, sample_type = sample_type, fastq_file = fastq_file))
 print ("------------------------------------------")
+for sample in FILES.keys():
+	print ("{sample} has {n} marks".format(sample = sample, n = len(FILES[sample])))
+print ("------------------------------------------")
 print("check the samples.json file for fastqs belong to each sample")
 print()
 
