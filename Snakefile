@@ -28,7 +28,6 @@ CONTROL = config["control"]
 CONTROLS = [sample for sample in MARK_SAMPLES if CONTROL in sample]
 CASES = [sample for sample in MARK_SAMPLES if CONTROL not in sample]
 
-
 ## multiple samples may use the same control input/IgG files
 CONTROLS_UNIQUE = list(set(CONTROLS))
 
@@ -65,9 +64,38 @@ ALL_BIGWIG = expand("07bigwig/{sample}.bw", sample = ALL_SAMPLES)
 ALL_QC = ["10multiQC/multiQC_log.html"]
 
 
+
+TARGETS = []
+TARGETS.extend(ALL_FASTQC)
+TARGETS.extend(ALL_BAM)
+TARGETS.extend(ALL_DOWNSAMPLE_BAM)
+TARGETS.extend(ALL_INDEX)
+TARGETS.extend(ALL_PHATOM)
+TARGETS.extend(ALL_PEAKS)
+TARGETS.extend(ALL_BIGWIG)
+TARGETS.extend(ALL_inputSubtract_BIGWIG)
+TARGETS.extend(ALL_FASTQ)
+TARGETS.extend(ALL_FLAGSTAT)
+TARGETS.extend(ALL_QC)
+TARGETS.extend(ALL_SUPER)
+
+## sometimes if if you have TF ChIP-seq data, do not include it to chromHMM, or you want
+## only a subset of the histone marks be included in the chromHMM call
+
+if config["chromHMM"]:
+    HISTONE_INCLUDED = config["histone_for_chromHMM"].split(" ")
+    HISTONE_CASES = [sample for sample in MARK_SAMPLES if sample.split("_")[-1] in HISTONE_INCLUDED ]
+    ALL_BED = expand("12bed/{sample}.bed", sample = HISTONE_CASES + CONTROLS)
+    CHROMHMM = ["13chromHMM/MYOUTPUT", "13chromHMM/binarizedData"]
+    CHROMHMM_TABLE = ["12bed/cellmarkfiletable.txt"]
+    TARGETS.extend(ALL_BED)
+    TARGETS.extend(CHROMHMM)
+    TARGETS.extend(CHROMHMM_TABLE)
+
+
 localrules: all
 rule all:
-    input: ALL_FASTQC + ALL_BAM + ALL_DOWNSAMPLE_BAM + ALL_INDEX + ALL_DOWNSAMPLE_INDEX + ALL_PHATOM + ALL_PEAKS + ALL_BIGWIG + ALL_inputSubtract_BIGWIG + ALL_FASTQ + ALL_FLAGSTAT + ALL_QC + ALL_SUPER
+    input: TARGETS
 
 
 ## get a list of fastq.gz files for the same mark, same sample
@@ -287,4 +315,64 @@ rule superEnhancer:
         source activate root
         cd /scratch/genomic_med/apps/rose/default
         python ROSE_main.py -g {config[rose_g]} -i  {params.outputdir}/{input[4]} -r {params.outputdir}/{input[1]} -c {params.outputdir}/{input[0]} -o {params.outputdir}/{output}
+        """
+
+################################################################################################################################
+
+#                     Run ChromHMM for a subset of histone modifications                                                       #
+
+#################################################################################################################################
+
+
+rule bam2bed:
+    input :
+        "04aln_downsample/{sample}-downsample.sorted.bam"
+    output:
+        "12bed/{sample}.bed"
+    params: jobname = "{sample}"
+    log: "00log/{sample}_bam2bed.log"
+    message: "converting bam to bed for {input}"
+    shell:
+        """
+        bedtools bamtobed -i {input} > {output}
+        """
+
+rule make_table:
+    input : expand("12bed/{sample}.bed", sample = HISTONE_CASES + CONTROLS)
+    output : "12bed/cellmarkfiletable.txt"
+    log: "00log/make_table_chromHMM.log"
+    message: "making a table for chromHMM"
+    run:
+        import os
+        from os.path import join
+        with open (output[0], "w") as f:
+            for case in HISTONE_CASES:
+                sample = "_".join(case.split("_")[0:-1])
+                mark = case.split("_")[-1]
+                control = sample + "_" + CONTROL
+                case_bed = case + ".bed"
+                if os.path.exists(join("11bed", case_bed)) and mark in HISTONE_CASES:
+                    f.write(sample + "\t" +  mark + "\t" + case + ".bed" + "\t" + control + ".bed" + "\n")
+
+rule chromHmm_binarize:
+    input :
+        expand("12bed/{sample}.bed", sample = HISTONE_CASES + CONTROLS), "12bed/cellmarkfiletable.txt"
+    output:
+        "13chromHMM/binarizedData"
+    log:
+        chromhmm_binarize = "00log/chromhmm_bin.log"
+    params: chromhmm = "-mx12000M -jar /scratch/genomic_med/apps/chromhmm/chromhmm_v1.11/ChromHMM.jar"
+    shell:
+        """
+        java {params.chromhmm} BinarizeBed -b {config[binsize]}  /scratch/genomic_med/apps/chromhmm/chromhmm_v1.11/CHROMSIZES/{config[chromHmm_g]}.txt 12bed/ 12bed/cellmarkfiletable.txt {output} 2> {log.chromhmm_binarize}
+        """
+
+rule chromHmm_learn:
+    input: "13chromHMM/binarizedData"
+    output: "13chromHMM/MYOUTPUT"
+    log: chromhmm_learn = "00log/chromhmm_learn.log"
+    params: chromhmm = "-mx12000M -jar /scratch/genomic_med/apps/chromhmm/chromhmm_v1.11/ChromHMM.jar"
+    shell:
+        """
+        java {params.chromhmm} LearnModel -p 10 -b {config[binsize]} {input} {output} {config[state]} {config[chromHmm_g]} 2> {log.chromhmm_learn}
         """

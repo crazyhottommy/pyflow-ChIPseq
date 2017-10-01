@@ -10,10 +10,25 @@ control: 'Input'
 #superEnhancer genome
 rose_g: hg19
 
-#number of reads downsample to, I set to 50 million, if reads number smaller than 
+#number of reads downsample to, I set to 50 million, if reads number smaller than
 ## 50 million, downsample will keep the orignal reads
 target_reads: 50000000
 
+## run chromHMM or not
+chromHMM: True
+
+##chromHMM bin size
+binsize: 200
+#chromatin state model
+state: 15
+##chromHMM genome
+chromHmm_g : hg19
+
+## histone marks that you want to include in the chromHMM model
+## space delimited. entries should be from the third column of the meta.txt file fed
+## into the samples2json.py file.
+
+histone_for_chromHMM: "K4me1 K4me3 K27ac K27me3 Input"
 
 # Path to a JSON file with samples and their corresponding FASTQ files.
 SAMPLES: './SRR.txt'

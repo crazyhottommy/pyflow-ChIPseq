@@ -85,6 +85,21 @@
     {
         "time": "01:00"
     },
+    "make_table":
+    {
+        "time": "00:10"
+    },
+    "chromHmm_binarize":
+    {
+        "time": "4:00",
+        "queue" : "medium"
+    },
+    "chromHmm_learn":
+    {
+        "time": "24:00",
+        "cpu": 10,
+        "queue": "medium"
+    },
     "superEnhancer":
     {
         "time": "8:00",
