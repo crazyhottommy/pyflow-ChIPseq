@@ -351,7 +351,7 @@ rule make_table:
                 mark = case.split("_")[-1]
                 control = sample + "_" + CONTROL
                 case_bed = case + ".bed"
-                if os.path.exists(join("11bed", case_bed)) and mark in HISTONE_CASES:
+                if os.path.exists(join("12bed", case_bed)):
                     f.write(sample + "\t" +  mark + "\t" + case + ".bed" + "\t" + control + ".bed" + "\n")
 
 rule chromHmm_binarize:
