@@ -7,18 +7,18 @@ switch to a different branch to see the codes. now I have `shark` branch for the
 
 **UPDATE** 05/30/2017. Now, the pipeline can handle in-house data as well.
 
-Now, this is working on LSF, I will have another branch for Moab.
+Now, this is working on LSF, I will have another branch for Torque.
 
 ### Citation
 
-I created a doi on [zenodo](https://zenodo.org/).  
+I created a doi on [zenodo](https://zenodo.org/).
 You can cite:
 
 [![DOI](https://zenodo.org/badge/89386223.svg)](https://zenodo.org/badge/latestdoi/89386223)
 
 ### work flow of the pipeline
 
-![](./GEO_rulegraph.png)
+![](./rulegraph.png)
 
 In the `config.yaml` file you can change settings. e.g. path to a different genome to align, p value cut-offs. The `target_reads` is the number of reads that downsampled to. I set 15 million for default. If the number of reads of the orignal bam files are less than `target_reads`, the pipeline will just keep whatever the number it has.
 
@@ -115,8 +115,8 @@ e.g.
 ```bash
 cat SRR.txt
 
-sample_name fastq_name  factor 
-MOLM-14_DMSO1_5 SRR2518123   BRD4     
+sample_name fastq_name  factor
+MOLM-14_DMSO1_5 SRR2518123   BRD4
 MOLM-14_DMSO1_5 SRR2518124  Input
 MOLM-14_DMSO2_6 SRR2518125  BRD4
 MOLM-14_DMSO2_6 SRR2518126  Input
@@ -124,7 +124,7 @@ MOLM-14_DMSO2_6 SRR2518126  Input
 
 ```
 
-You can have mulitple different factors for the same sample_name.  
+You can have mulitple different factors for the same sample_name.
 
 `sample_name_factor` will be used to name the output. e.g. :`MOLM-14_DMSO1_5_BRD4.sorted.bam`
 
@@ -163,7 +163,7 @@ cat srr_unique.txt | parallel -j 4 ./download.sh {}
 
 Now you have all `sra` files downloaded into `fastqs` folder, proceed below:
 
-### convert `sra` to `fastqs` and compress to .gz files 
+### convert `sra` to `fastqs` and compress to .gz files
 
 ```bash
 
@@ -178,7 +178,7 @@ rm *sra
 # go gack to the pyflow-ChIPseq folder
 cd ..
 
-python3 sample2json.py --fastq_dir fastqs/ --meta SRR.txt 
+python3 sample2json.py --fastq_dir fastqs/ --meta SRR.txt
 ```
 
 A `samples.json` file will be created and some information will be printed out on the screen.
@@ -214,7 +214,7 @@ Dependent jobs are submitted one by one, if some jobs failed, the pipeline will 
 ### submit all jobs to the cluster
 
 ```bash
-./pyflow-ChIPseq.sh 
+./pyflow-ChIPseq.sh
 ```
 
 All jobs will be submitted to the cluster on queue.  This is useful if you know your jobs will succeed for most of them and the jobs are on queue to gain priority.
@@ -263,12 +263,12 @@ sample7 Li-Lane-4-9C-062817     Input   mouse
 ## only the first 3 columns are required.
 
 ## make a samples.json file
-python3 sample2json.py --fastq_dir dir/to/fastqs/ --meta meta.txt 
+python3 sample2json.py --fastq_dir dir/to/fastqs/ --meta meta.txt
 ```
 
-The real name of the fastq files:  
+The real name of the fastq files:
 
-`/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-1-1C-062817/Li-Lane-1-1C-062817_S24_L004_R1_001.fastq.gz`    
+`/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-1-1C-062817/Li-Lane-1-1C-062817_S24_L004_R1_001.fastq.gz`
 
 check the example `samples.json` file in the repo.
 
@@ -276,7 +276,7 @@ Now, the same as the steps as processing the `sra` files
 
 ```bash
 # dry run
-pyflow-ChIPseq.sh  -np 
+pyflow-ChIPseq.sh  -np
 ```
 
 
@@ -291,22 +291,22 @@ In Dr.Kunal Rai'lab. We adopted a barcoding system similar to TCGA:
 e.g.
 `TCGA-SKCM-M028-11-P008-A-NC-CJT-T`
 
-`TCGA` is the big project name;  
+`TCGA` is the big project name;
 `SKCM` is the tumor name;
-`M028` is the sample name (this should be an unique identifier);  
+`M028` is the sample name (this should be an unique identifier);
 `11` is the sequencing tag;
-we use `11` to denote first time IP, first time sequencing, if the reads number is too few, but the IP worked, we just need to resequence the same library. for the resequencing sample, we will use `12` for this. if the total reads number is still too low, `13` could be used. `21` will be second time IP and first time sequencing. etc.  
-`P008` is the plate number of that IP experiment, we now use 96-well plate for ChIP-seq, we use this id to track which plate the samples are from.  
-`A` is the chromatin mark name or transcription factor name. we have a naming map for this:  
-`A` is H3K4me1, `B` is H3K9me3 and `G` is for Input etc.  
+we use `11` to denote first time IP, first time sequencing, if the reads number is too few, but the IP worked, we just need to resequence the same library. for the resequencing sample, we will use `12` for this. if the total reads number is still too low, `13` could be used. `21` will be second time IP and first time sequencing. etc.
+`P008` is the plate number of that IP experiment, we now use 96-well plate for ChIP-seq, we use this id to track which plate the samples are from.
+`A` is the chromatin mark name or transcription factor name. we have a naming map for this:
+`A` is H3K4me1, `B` is H3K9me3 and `G` is for Input etc.
 
 The other barcode areas can be used for other information. `NC` means the samples were sequenced in north campus.
 
 It saves me a lot in the downstream processing. The barcode can be captured by a universal regular expression from the fastq.gz files.
 
-A real experiment comes a fastq.gz name like this 
+A real experiment comes a fastq.gz name like this
 
-`TCGA-SKCM-M028-R1-P008-C-NC-CJT-T_TTAGGC_L001_R1_006.fastq.gz`  
+`TCGA-SKCM-M028-R1-P008-C-NC-CJT-T_TTAGGC_L001_R1_006.fastq.gz`
 
 multiplexing is very common nowadays, the sequencing reads for the same sample may come from different lanes, after de-multiplexing, multiple files for the same sample will be put in the same folder. If you name your files in a consistent way, you can easily merge all the fastq files before mapping. (for DNA sequencing, it is recommended to map the fastq files independently and then merge the mapped bam files with read-group to identify which lane it is from).
 
@@ -324,7 +324,7 @@ To kill all of your pending jobs you can use the command:
 bkill `bjobs -u krai |grep PEND |cut -f1 -d" "`
 ```
 
-other useful commands: 
+other useful commands:
 
 ```
 bjobs -pl
@@ -400,7 +400,6 @@ snakemake -n -R `snakemake --list-code-changes`
 
 ### TO DO list
 
-**provide a output directory** now everything will be output in the current pyflow-ChIPseq directory in a structured fasion. : `00log`, `01seq`, `02fqc`, `03aln` etc  
-**work for paired-end ChIPseq as well** now only for single-end.   
-**put everything in docker**    
-
+**provide a output directory** now everything will be output in the current pyflow-ChIPseq directory in a structured fasion. : `00log`, `01seq`, `02fqc`, `03aln` etc
+**work for paired-end ChIPseq as well** now only for single-end.
+**put everything in docker**
