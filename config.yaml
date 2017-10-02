@@ -28,7 +28,7 @@ chromHmm_g : hg19
 ## space delimited. entries should be from the third column of the meta.txt file fed
 ## into the samples2json.py file.
 
-histone_for_chromHMM: "K4me1 K4me3 K27ac K27me3 Input"
+histone_for_chromHMM: "K4me1 K4me3 K27ac K27me3"
 
 # Path to a JSON file with samples and their corresponding FASTQ files.
 SAMPLES: './SRR.txt'
