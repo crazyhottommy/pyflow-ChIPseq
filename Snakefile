@@ -337,42 +337,45 @@ rule bam2bed:
         bedtools bamtobed -i {input} > {output}
         """
 
-rule make_table:
-    input : expand("12bed/{sample}.bed", sample = HISTONE_CASES + CONTROLS)
-    output : "12bed/cellmarkfiletable.txt"
-    log: "00log/make_table_chromHMM.log"
-    message: "making a table for chromHMM"
-    run:
-        import os
-        from os.path import join
-        with open (output[0], "w") as f:
-            for case in HISTONE_CASES:
-                sample = "_".join(case.split("_")[0:-1])
-                mark = case.split("_")[-1]
-                control = sample + "_" + CONTROL
-                case_bed = case + ".bed"
-                if os.path.exists(join("12bed", case_bed)):
-                    f.write(sample + "\t" +  mark + "\t" + case + ".bed" + "\t" + control + ".bed" + "\n")
+if config["chromHMM"]:
+    rule make_table:
+        input : expand("12bed/{sample}.bed", sample = HISTONE_CASES + CONTROLS)
+        output : "12bed/cellmarkfiletable.txt"
+        log: "00log/make_table_chromHMM.log"
+        message: "making a table for chromHMM"
+        run:
+            import os
+            from os.path import join
+            with open (output[0], "w") as f:
+                for case in HISTONE_CASES:
+                    sample = "_".join(case.split("_")[0:-1])
+                    mark = case.split("_")[-1]
+                    control = sample + "_" + CONTROL
+                    case_bed = case + ".bed"
+                    if os.path.exists(join("12bed", case_bed)):
+                        f.write(sample + "\t" +  mark + "\t" + case + ".bed" + "\t" + control + ".bed" + "\n")
 
-rule chromHmm_binarize:
-    input :
-        expand("12bed/{sample}.bed", sample = HISTONE_CASES + CONTROLS), "12bed/cellmarkfiletable.txt"
-    output:
-        "13chromHMM/binarizedData"
-    log:
-        chromhmm_binarize = "00log/chromhmm_bin.log"
-    params: chromhmm = "-mx12000M -jar /scratch/genomic_med/apps/chromhmm/chromhmm_v1.11/ChromHMM.jar"
-    shell:
-        """
-        java {params.chromhmm} BinarizeBed -b {config[binsize]}  /scratch/genomic_med/apps/chromhmm/chromhmm_v1.11/CHROMSIZES/{config[chromHmm_g]}.txt 12bed/ 12bed/cellmarkfiletable.txt {output} 2> {log.chromhmm_binarize}
-        """
+if config["chromHMM"]:
+    rule chromHmm_binarize:
+        input :
+            expand("12bed/{sample}.bed", sample = HISTONE_CASES + CONTROLS), "12bed/cellmarkfiletable.txt"
+        output:
+            "13chromHMM/binarizedData"
+        log:
+            chromhmm_binarize = "00log/chromhmm_bin.log"
+        params: chromhmm = "-mx12000M -jar /scratch/genomic_med/apps/chromhmm/chromhmm_v1.11/ChromHMM.jar"
+        shell:
+            """
+            java {params.chromhmm} BinarizeBed -b {config[binsize]}  /scratch/genomic_med/apps/chromhmm/chromhmm_v1.11/CHROMSIZES/{config[chromHmm_g]}.txt 12bed/ 12bed/cellmarkfiletable.txt {output} 2> {log.chromhmm_binarize}
+            """
 
-rule chromHmm_learn:
-    input: "13chromHMM/binarizedData"
-    output: "13chromHMM/MYOUTPUT"
-    log: chromhmm_learn = "00log/chromhmm_learn.log"
-    params: chromhmm = "-mx12000M -jar /scratch/genomic_med/apps/chromhmm/chromhmm_v1.11/ChromHMM.jar"
-    shell:
-        """
-        java {params.chromhmm} LearnModel -p 10 -b {config[binsize]} {input} {output} {config[state]} {config[chromHmm_g]} 2> {log.chromhmm_learn}
-        """
+if config["chromHMM"]:
+    rule chromHmm_learn:
+        input: "13chromHMM/binarizedData"
+        output: "13chromHMM/MYOUTPUT"
+        log: chromhmm_learn = "00log/chromhmm_learn.log"
+        params: chromhmm = "-mx12000M -jar /scratch/genomic_med/apps/chromhmm/chromhmm_v1.11/ChromHMM.jar"
+        shell:
+            """
+            java {params.chromhmm} LearnModel -p 10 -b {config[binsize]} {input} {output} {config[state]} {config[chromHmm_g]} 2> {log.chromhmm_learn}
+            """
