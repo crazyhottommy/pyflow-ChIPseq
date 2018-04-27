@@ -16,7 +16,7 @@ You can cite:
 
 [![DOI](https://zenodo.org/badge/89386223.svg)](https://zenodo.org/badge/latestdoi/89386223)
 
-The pipeline was just published! please cite:
+The pipeline was just [published in JOVE](https://www.jove.com/video/56972/an-integrated-platform-for-genome-wide-mapping-chromatin-states-using)!  please cite:
 
 ```
 Terranova, C., Tang, M., Orouji, E., Maitituoheti, M., Raman, A., Amin, S., et al. An Integrated Platform for Genome-wide Mapping of Chromatin States Using High-throughput ChIP-sequencing in Tumor Tissues. J. Vis. Exp. (134), e56972, doi:10.3791/56972 (2018).
