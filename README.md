@@ -16,6 +16,12 @@ You can cite:
 
 [![DOI](https://zenodo.org/badge/89386223.svg)](https://zenodo.org/badge/latestdoi/89386223)
 
+The pipeline was just published! please cite:
+
+```
+Terranova, C., Tang, M., Orouji, E., Maitituoheti, M., Raman, A., Amin, S., et al. An Integrated Platform for Genome-wide Mapping of Chromatin States Using High-throughput ChIP-sequencing in Tumor Tissues. J. Vis. Exp. (134), e56972, doi:10.3791/56972 (2018).
+```
+
 ### work flow of the pipeline
 
 ![](./rulegraph.png)
