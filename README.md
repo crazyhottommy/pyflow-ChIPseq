@@ -146,7 +146,12 @@ cd fastqs
 make a shell script:
 `download.sh`
 
-download the sqlite database from http://dl.dropbox.com/u/51653511/SRAmetadb.sqlite.gz and unzip it. place it in the `scripts` folder
+download the sqlite database from http://dl.dropbox.com/u/51653511/SRAmetadb.sqlite.gz and unzip it. place it in the `scripts` folder.
+
+UPDATE (2018-04-28). You may want to upgrade the `sradb` or download the database here https://github.com/seandavi/SRAdb/blob/master/README.md#raw-database-downloads
+
+see issue https://github.com/seandavi/SRAdb/issues/10
+
 ```bash
 # /bin/bash
 set -euo pipefail
