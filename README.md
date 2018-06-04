@@ -294,7 +294,7 @@ pyflow-ChIPseq.sh  -np
 ### Extra notes on file names
 If one sets up a lab, it is necessary to have consistent file naming across all the projects. `TCGA`project is a great example for us to follow. A [barcode system](https://wiki.nci.nih.gov/display/TCGA/TCGA+barcode) can make your life a lot easier for downstream analysis.
 
-![](./TCGA.png)
+![](./TCGA_barcode.jpg)
 
 Similarily, for a ChIP-seq project, it is important to have consistent naming.
 In Dr.Kunal Rai'lab. We adopted a barcoding system similar to TCGA:
