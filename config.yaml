@@ -1,4 +1,8 @@
 
+paired_end: True
+# >70bp long, <70bp false
+long_reads: True
+
 idx_bt1: /scratch/genomic_med/apps/annot/indexes/bowtie/hg19
 macs_g: hs
 macs_pvalue: 1e-5
@@ -8,6 +12,7 @@ macs2_pvalue_broad: 1e-5
 
 control: 'Input'
 #superEnhancer genome
+rose_path: /n/home02/mtang/apps/ROSE/young_computation-rose-1a9bb86b5464
 rose_g: hg19
 
 #number of reads downsample to, I set to 50 million, if reads number smaller than
@@ -15,7 +20,7 @@ rose_g: hg19
 target_reads: 50000000
 
 ## run chromHMM or not
-chromHMM: True
+chromHMM: False
 
 ##chromHMM bin size
 binsize: 200

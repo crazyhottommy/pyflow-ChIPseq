@@ -99,20 +99,19 @@ rule all:
 
 
 ## get a list of fastq.gz files for the same mark, same sample
-def get_fastq(wildcards):
+def get_input_files(wildcards):
     sample = "_".join(wildcards.sample.split("_")[0:-1])
     mark = wildcards.sample.split("_")[-1]
-    return FILES[sample][mark]
+    if config["from_fastq"]:
+        if config["paired_end"]:
+            return  FILES[sample_name][mark]['R1'] + FILES[sample_name][mark]['R2']
+        ## single end sequencing
+        if not config["paired_end"]:
+            return FILES[sample_name][mark]['R1']
+    ## start with bam files
+    if not config["from_fastq"]:
+        return FILES[sample_name][mark]
 
-## now only for single-end ChIPseq,
-rule merge_fastqs:
-    input: get_fastq
-    output: "01seq/{sample}.fastq"
-    log: "00log/{sample}_unzip"
-    threads: CLUSTER["merge_fastqs"]["cpu"]
-    params: jobname = "{sample}"
-    message: "merging fastqs gunzip -c {input} > {output}"
-    shell: "gunzip -c {input} > {output} 2> {log}"
 
 rule fastqc:
     input:  "01seq/{sample}.fastq"
@@ -129,36 +128,86 @@ rule fastqc:
 
 # get the duplicates marked sorted bam, remove unmapped reads by samtools view -F 4 and dupliated reads by samblaster -r
 # samblaster should run before samtools sort
-rule align:
-    input:  "01seq/{sample}.fastq"
-    output: "03aln/{sample}.sorted.bam", "00log/{sample}.align"
-    threads: CLUSTER["align"]["cpu"]
-    params:
-            bowtie = "--chunkmbs 320 -m 1 --best -p 5 ",
-            jobname = "{sample}"
-    message: "aligning {input}: {threads} threads"
-    log:
-        bowtie = "00log/{sample}.align",
-        markdup = "00log/{sample}.markdup"
-    shell:
-        """
-        bowtie {params.bowtie} {config[idx_bt1]} -q {input} -S 2> {log.bowtie} \
-        | samblaster --removeDups \
-	| samtools view -Sb -F 4 - \
-	| samtools sort -m 2G -@ 5 -T {output[0]}.tmp -o {output[0]} 2> {log.markdup}
-        """
 
-rule index_bam:
-    input:  "03aln/{sample}.sorted.bam"
-    output: "03aln/{sample}.sorted.bam.bai"
-    log:    "00log/{sample}.index_bam"
-    threads: 1
-    params: jobname = "{sample}"
-    message: "index_bam {input}: {threads} threads"
-    shell:
-        """
-        samtools index {input} 2> {log}
-        """
+## align from fastq files
+## deal with paired end and single end data
+## see https://bitbucket.org/snakemake/snakemake/pull-requests/148/examples-for-paired-read-data-and/diff
+## some hints:
+## https://bitbucket.org/snakemake/snakemake/issues/37/add-complex-conditional-file-dependency
+## conditional rules?
+## https://groups.google.com/forum/#!msg/snakemake/qX7RfXDTDe4/cKZBfc_PAAAJ
+
+
+## when feeding @RG to bwa mem,  literal tab will cause the resulting bam file header violating the
+## SAM specification at @PG line. https://github.com/lh3/bwa/issues/83. This will interfere with IGV and picard
+## to process the bam files.
+## and https://github.com/Duke-GCB/bespin-cwl/issues/6
+## BWA after version BWA-0.7.16a (r1181) with verbose >=1 will  this problem.
+## now feed bwa with read group by escaping the tab
+## Before: -R "@RG\tID:1\tLB:LIBRARY\tPL:illumina\tSM:sample1\tPU:AB1234"
+## Now: -R "@RG\\tID:1\\tLB:LIBRARY\\tPL:illumina\\tSM:sample1\\tPU:AB1234"
+
+
+if config["from_fastq"]:
+    rule align:
+        input:  get_input_files
+        output: "03aln/{sample}.sorted.bam", "03aln/{sample}.sorted.bam.bai", "00log/{sample}.align"
+        threads: CLUSTER["align"]["cpu"]
+        params:
+                jobname = "{sample}",
+                ## add read group for bwa mem mapping, change accordingly if you know PL:ILLUMINA, LB:library1 PI:200 etc...
+                rg = "@RG\\tID:{sample}\\tSM:{sample}"
+        message: "aligning bwa {input}: {threads} threads"
+        log:
+            bwa = "00log/{sample}.align",
+            markdup = "00log/{sample}.markdup"
+        run:
+            ## paired end reads
+            if config["paired_end"]:
+                if config["long_reads"]:
+                    shell(
+                        r"""
+                        bwa mem -t 5 -M -v 1 -R '{params.rg}' {config[ref_fa]} {input[0]} {input[1]} 2> {log.bwa} \
+                        | samblaster 2> {log.markdup} \
+                        | samtools sort -m 2G -@ 5 -T {output[0]}.tmp -o {output[0]}
+                        samtools index {output[0]}
+                        """)
+                ## short reads < 70bp
+                ## Probably one of the most important is how many mismatches you will allow between a read and a potential mapping location for that location to be considered a match.
+                ## The default is 4% of the read length, but you can set this to be either another proportion of the read length, or a fixed integer
+                else:
+                    shell(
+                        r"""
+                        bwa aln -t 5 {config[ref_fa]} {input[0]} 2> {log.bwa} > 0aln/{wildcards.sample}_R1.sai
+                        bwa aln -t 5 {config[ref_fa]} {input[1]} 2>> {log.bwa} > 01aln/{wildcards.sample}_R2.sai
+                        bwa sampe -r '{params.rg}' {config[ref_fa]} 01aln/{wildcards.sample}_R1.sai 01aln/{wildcards.sample}_R2.sai {input[0]} {input[1]} 2>> {log.bwa} \
+                        | samblaster 2> {log.markdup} \
+                        | samtools sort -m 2G -@ 5 -T {output[0]}.tmp -o {output[0]}
+                        rm 01aln/{wildcards.sample}_R1.sai 01aln/{wildcards.sample}_R2.sai
+                        samtools index {output[0]}
+                        """)
+
+            # single end  reads
+            else:
+                if config["long_reads"]:
+                    shell(
+                        r"""
+                        bwa mem -t 5 -M -v 1 -R '{params.rg}' {config[ref_fa]} {input} 2> {log.bwa} \
+                        | samblaster 2> {log.markdup} \
+                        | samtools sort -m 2G -@ 5 -T {output[0]}.tmp -o {output[0]}
+                        samtools index {output[0]}
+                        """)
+                ## short reads < 70bp
+                else:
+                    shell(
+                        r"""
+                        bwa aln -t 5 {config[ref_fa]} {input} 2> {log.bwa} > 01aln/{wildcards.sample}.sai
+                        bwa samse -r '{params.rg}' {config[ref_fa]} 01aln/{wildcards.sample}.sai {input} 2>> {log.bwa} \
+                        | samblaster 2> {log.markdup} \
+                        | samtools sort -m 2G -@ 5 -T {output[0]}.tmp -o {output[0]}
+                        rm 01aln/{wildcards.sample}.sai
+                        samtools index {output[0]}
+                        """)
 
 # check number of reads mapped by samtools flagstat, the output will be used for downsampling
 rule flagstat_bam:
@@ -255,7 +304,7 @@ rule call_peaks_macs1:
     message: "call_peaks macs14 {input}: {threads} threads"
     shell:
         """
-	   source activate root
+	    source activate py27
         macs14 -t {input.case} \
             -c {input.control} --keep-dup all -f BAM -g {config[macs_g]} \
             --outdir 08peak_macs1 -n {params.name1} -p {config[macs_pvalue]} &> {log.macs1}
@@ -277,7 +326,7 @@ rule call_peaks_macs2:
     message: "call_peaks macs2 {input}: {threads} threads"
     shell:
         """
-       source activate root
+       source activate py27
        ## for macs2, when nomodel is set, --extsize is default to 200bp, this is the same as 2 * shift-size in macs14.
         macs2 callpeak -t {input.case} \
             -c {input.control} --keep-dup all -f BAM -g {config[macs2_g]} \
@@ -312,8 +361,8 @@ rule superEnhancer:
             outputdir = os.path.dirname(srcdir("00log"))
     shell:
         """
-        source activate root
-        cd /scratch/genomic_med/apps/rose/default
+        source activate py27
+        cd {config[rose_path]}
         python ROSE_main.py -g {config[rose_g]} -i  {params.outputdir}/{input[4]} -r {params.outputdir}/{input[1]} -c {params.outputdir}/{input[0]} -o {params.outputdir}/{output}
         """
 
