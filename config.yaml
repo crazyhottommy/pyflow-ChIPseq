@@ -3,7 +3,7 @@ paired_end: True
 # >70bp long, <70bp false
 long_reads: True
 
-idx_bt1: /scratch/genomic_med/apps/annot/indexes/bowtie/hg19
+ref_fa: /scratch/genomic_med/apps/annot/indexes/bowtie/hg19
 macs_g: hs
 macs_pvalue: 1e-5
 macs2_g: hs
