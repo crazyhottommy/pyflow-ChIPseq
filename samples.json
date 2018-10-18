@@ -1,123 +1,48 @@
 {
-    "sample1": {
-        "Bethal-CHD1": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-1-1C-062817/Li-Lane-1-1C-062817_S24_L004_R1_001.fastq.gz"
-        ],
-        "CST-CHD1": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-1-1A-062817/Li-Lane-1-1A-062817_S22_L004_R1_001.fastq.gz"
-        ],
-        "IgG": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-1-1E-062817/Li-Lane-1-1E-062817_S26_L004_R1_001.fastq.gz"
-        ],
-        "Input": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-4-7E-062817/Li-Lane-4-7E-062817_S44_L007_R1_001.fastq.gz"
-        ]
+    "LKR10": {
+        "Input": {
+            "R1": [
+                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Input_LKR10_1.fq.gz"
+            ],
+            "R2": [
+                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Input_LKR10_2.fq.gz"
+            ]
+        },
+        "Mll4": {
+            "R1": [
+                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Mll4_LKR10_1.fq.gz"
+            ],
+            "R2": [
+                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Mll4_LKR10_2.fq.gz"
+            ]
+        },
+        "Per2": {
+            "R1": [
+                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Per2_A_LKR10_1.fq.gz",
+                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Per2_B_LKR10_1.fq.gz"
+            ],
+            "R2": [
+                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Per2_A_LKR10_2.fq.gz",
+                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Per2_B_LKR10_2.fq.gz"
+            ]
+        }
     },
-    "sample10": {
-        "H3K27Ac": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-5-1H-062817/Li-Lane-5-1H-062817_S49_L008_R1_001.fastq.gz"
-        ],
-        "Input": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-5-7C-062817/Li-Lane-5-7C-062817_S51_L008_R1_001.fastq.gz"
-        ]
-    },
-    "sample11": {
-        "H3K27Ac": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-5-3B-062817/Li-Lane-5-3B-062817_S50_L008_R1_001.fastq.gz"
-        ],
-        "Input": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-5-7D-062817/Li-Lane-5-7D-062817_S52_L008_R1_001.fastq.gz"
-        ]
-    },
-    "sample2": {
-        "Bethal-CHD1": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-1-1D-062817/Li-Lane-1-1D-062817_S25_L004_R1_001.fastq.gz"
-        ],
-        "CST-CHD1": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-1-1B-062817/Li-Lane-1-1B-062817_S23_L004_R1_001.fastq.gz"
-        ],
-        "IgG": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-1-1F-062817/Li-Lane-1-1F-062817_S27_L004_R1_001.fastq.gz"
-        ],
-        "Input": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-4-7F-062817/Li-Lane-4-7F-062817_S45_L007_R1_001.fastq.gz"
-        ]
-    },
-    "sample3": {
-        "H3K27Ac": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-2-3D-062817/Li-Lane-2-3D-062817_S29_L005_R1_001.fastq.gz"
-        ],
-        "Input": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-4-7G-062817/Li-Lane-4-7G-062817_S46_L007_R1_001.fastq.gz"
-        ],
-        "SOX2": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-2-3C-062817/Li-Lane-2-3C-062817_S28_L005_R1_001.fastq.gz"
-        ]
-    },
-    "sample4": {
-        "H3K27Ac": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-3-5A-062817/Li-Lane-3-5A-062817_S35_L006_R1_001.fastq.gz"
-        ],
-        "H3K9me3": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-2-3E-062817/Li-Lane-2-3E-062817_S30_L005_R1_001.fastq.gz"
-        ],
-        "Input": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-2-7H-062817/Li-Lane-2-7H-062817_S34_L005_R1_001.fastq.gz"
-        ],
-        "MYC": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-3-5E-062817/Li-Lane-3-5E-062817_S39_L006_R1_001.fastq.gz"
-        ]
-    },
-    "sample5": {
-        "H3K27Ac": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-3-5B-062817/Li-Lane-3-5B-062817_S36_L006_R1_001.fastq.gz"
-        ],
-        "H3K9me3": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-2-3F-062817/Li-Lane-2-3F-062817_S31_L005_R1_001.fastq.gz"
-        ],
-        "Input": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-3-9A-062817/Li-Lane-3-9A-062817_S41_L006_R1_001.fastq.gz"
-        ]
-    },
-    "sample6": {
-        "H3K27Ac": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-3-5C-062817/Li-Lane-3-5C-062817_S37_L006_R1_001.fastq.gz"
-        ],
-        "H3K9me3": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-2-3G-062817/Li-Lane-2-3G-062817_S32_L005_R1_001.fastq.gz"
-        ],
-        "Input": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-4-9B-062817/Li-Lane-4-9B-062817_S47_L007_R1_001.fastq.gz"
-        ]
-    },
-    "sample7": {
-        "H3K27Ac": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-3-5D-062817/Li-Lane-3-5D-062817_S38_L006_R1_001.fastq.gz"
-        ],
-        "H3K9me3": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-2-3H-062817/Li-Lane-2-3H-062817_S33_L005_R1_001.fastq.gz"
-        ],
-        "Input": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-4-9C-062817/Li-Lane-4-9C-062817_S48_L007_R1_001.fastq.gz"
-        ],
-        "MYC": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-3-5H-062817/Li-Lane-3-5H-062817_S40_L006_R1_001.fastq.gz"
-        ]
-    },
-    "sample8": {
-        "Input": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-5-9D-062817/Li-Lane-5-9D-062817_S53_L008_R1_001.fastq.gz"
-        ],
-        "SMAD3": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-4-7A-062817/Li-Lane-4-7A-062817_S42_L007_R1_001.fastq.gz"
-        ]
-    },
-    "sample9": {
-        "Input": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-5-9E-062817/Li-Lane-5-9E-062817_S54_L008_R1_001.fastq.gz"
-        ],
-        "SMAD3": [
-            "/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-4-7B-062817/Li-Lane-4-7B-062817_S43_L007_R1_001.fastq.gz"
-        ]
+    "V6_5": {
+        "Input": {
+            "R1": [
+                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Input_V6_5_1.fq.gz"
+            ],
+            "R2": [
+                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Input_V6_5_2.fq.gz"
+            ]
+        },
+        "Per2": {
+            "R1": [
+                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Per2_B_V6_5_1.fq.gz"
+            ],
+            "R2": [
+                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Per2_B_V6_5_2.fq.gz"
+            ]
+        }
     }
 }

@@ -1,19 +1,23 @@
-
+from_fastq: True
 paired_end: True
 # >70bp long, <70bp false
 long_reads: True
 
-ref_fa: /scratch/genomic_med/apps/annot/indexes/bowtie/hg19
-macs_g: hs
+# what's the control for IP
+control: 'Input'
+
+ref_fa: /n/regal/informatics_public/reference_genome_by_tommy/ucsc/mm9/mm9.fa
+macs_g: mm
 macs_pvalue: 1e-5
-macs2_g: hs
+macs2_g: mm
 macs2_pvalue: 1e-5
 macs2_pvalue_broad: 1e-5
 
-control: 'Input'
-#superEnhancer genome
+#phantompeakqual path
+phantom_path: /n/home02/mtang/apps/phantompeakqualtools/run_spp.R
+#rose path, only specify the folder
 rose_path: /n/home02/mtang/apps/ROSE/young_computation-rose-1a9bb86b5464
-rose_g: hg19
+rose_g: mm9
 
 #number of reads downsample to, I set to 50 million, if reads number smaller than
 ## 50 million, downsample will keep the orignal reads
@@ -21,13 +25,15 @@ target_reads: 50000000
 
 ## run chromHMM or not
 chromHMM: False
+# the folder, keep the trailing slash
+chromHMM_path: /n/home02/mtang/apps/chromHMM/ChromHMM/
 
 ##chromHMM bin size
 binsize: 200
 #chromatin state model
 state: 15
 ##chromHMM genome
-chromHmm_g : hg19
+chromHmm_g : mm9
 
 ## histone marks that you want to include in the chromHMM model
 ## space delimited. entries should be from the third column of the meta.txt file fed

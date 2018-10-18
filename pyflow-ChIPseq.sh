@@ -3,8 +3,9 @@
 
 # invoke Snakemake in cluster mode with custom wrapper scripts
 
-snakemake --rerun-incomplete -j 1000 --jobscript ./jobscript.sh \
-		  --timestamp --latency-wait 120 --immediate-submit \
-		  --cluster-config cluster.json --cluster './bsub_cluster.py {dependencies}' \
+snakemake --rerun-incomplete -j 1000 -k \
+		  --jobscript ./jobscript.sh \
+		  --latency-wait 120 \
+		  --cluster-config cluster.json --cluster './sbatch_cluster.py' \
 		  "$@"
 

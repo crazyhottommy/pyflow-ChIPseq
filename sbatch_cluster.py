@@ -2,7 +2,7 @@
 
 """
 Submit this clustering script for sbatch to snakemake with:
-    snakemake -j 99 --debug --immediate-submit --cluster-config cluster.json --cluster 'bsub_cluster.py {dependencies}'
+    snakemake -j 99 --debug --cluster-config cluster.json --cluster 'bsub_cluster.py'
 """
 
 ## In order to submit all the jobs to the moab queuing system, one needs to write a wrapper.
@@ -21,7 +21,7 @@ from snakemake.utils import read_job_properties
 
 ## make a directory for the logs from the cluster 
 try: 
-	os.makedirs("bsub_log")
+	os.makedirs("sbatch_log")
 except OSError as exception:
 	if exception.errno != errno.EEXIST:
 		raise
@@ -51,15 +51,15 @@ if jobname_tag_sample:
 
 # access property defined in the cluster configuration file (Snakemake >=3.6.0), cluster.json
 time = job_properties["cluster"]["time"]
-cpu = job_properties["cluster"]["cpu"]
-mem = job_properties["cluster"]["MaxMem"]
-queue = job_properties["cluster"]["queue"]
-EmailNotice = job_properties["cluster"]["EmailNotice"]
-email = job_properties["cluster"]["email"]
+cpu = job_properties["cluster"]["n"]
+mem = job_properties["cluster"]["mem"]
+queue = job_properties["cluster"]["p"]
+#EmailNotice = job_properties["cluster"]["EmailNotice"]
+#email = job_properties["cluster"]["email"]
 
-cmdline = 'bsub -n {cpu} -W {time} -u {email} -q {queue} -J {jobname} -o bsub_log/{out}.out -e bsub_log/{err}.err'.format(cpu = cpu, time = time, email = email, queue = queue, jobname = jobname, out = jobname, err = jobname)
+cmdline = 'sbatch -n {cpu} --time {time} -p {queue} -J {jobname} -o sbatch_log/{out}.out -e sbatch_log/{err}.err'.format(cpu = cpu, time = time, queue = queue, jobname = jobname, out = jobname, err = jobname)
 
-cmdline += ' -M {} -R rusage[mem={}] '.format(int(mem), int(mem))
+cmdline += ' -M {}'.format(int(mem))
 
 # figure out job dependencies, the last argument is the jobscript which is baked in snakemake
 # man bsub to see -w documentation
@@ -89,15 +89,15 @@ cmdline += ' -M {} -R rusage[mem={}] '.format(int(mem), int(mem))
 # -w done(1234) is the same as -w 1234
 
 # single quote is important '{}'
-dependencies = set(sys.argv[1:-1])
-if dependencies:
-	cmdline += " -w '{}' ".format(" && ".join(["done({})".format(dependency) for dependency in dependencies]))
+#dependencies = set(sys.argv[1:-1])
+#if dependencies:
+#	cmdline += " -w '{}' ".format(" && ".join(["done({})".format(dependency) for dependency in dependencies]))
 
 # the actual job
 cmdline += jobscript
 
 # the part that strips bsub's output to just the job id
-cmdline += r" | tail -1 | cut -f 2 -d \< | cut -f 1 -d \>"
+#cmdline += r" | tail -1 | cut -f 2 -d \< | cut -f 1 -d \>"
 
 # call the command
 os.system(cmdline)

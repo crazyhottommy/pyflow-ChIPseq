@@ -10,8 +10,8 @@ import argparse
 from collections import defaultdict
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--fastq_dir", help="Required. the FULL path to the fastq folder")
-parser.add_argument("--meta", help="Required. the FULL path to the tab delimited meta file")
+parser.add_argument("fastq_dir", help="Required. the FULL path to the fastq folder")
+parser.add_argument("meta", help="Required. the FULL path to the tab delimited meta file")
 args = parser.parse_args()
 
 assert args.fastq_dir is not None, "please provide the path to the fastq folder"
@@ -23,7 +23,7 @@ fastq_paths = []
 
 for root, dirs, files in os.walk(args.fastq_dir):
     for file in files:
-        if file.endswith("fq.gz"):
+        if file.endswith("fq.gz") or file.endswith("fastq.gz"):
             full_path = join(root, file)
             fastq_paths.append(full_path)
 

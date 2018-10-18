@@ -54,8 +54,6 @@ for case in CASES:
 ALL_SAMPLES = CASES + CONTROLS_UNIQUE
 ALL_BAM     = CONTROL_BAM + CASE_BAM
 ALL_DOWNSAMPLE_BAM = expand("04aln_downsample/{sample}-downsample.sorted.bam", sample = ALL_SAMPLES)
-ALL_FASTQ   = expand("01seq/{sample}.fastq", sample = ALL_SAMPLES)
-ALL_FASTQC  = expand("02fqc/{sample}_fastqc.zip", sample = ALL_SAMPLES)
 ALL_INDEX = expand("03aln/{sample}.sorted.bam.bai", sample = ALL_SAMPLES)
 ALL_DOWNSAMPLE_INDEX = expand("04aln_downsample/{sample}-downsample.sorted.bam.bai", sample = ALL_SAMPLES)
 ALL_FLAGSTAT = expand("03aln/{sample}.sorted.bam.flagstat", sample = ALL_SAMPLES)
@@ -66,7 +64,6 @@ ALL_QC = ["10multiQC/multiQC_log.html"]
 
 
 TARGETS = []
-TARGETS.extend(ALL_FASTQC)
 TARGETS.extend(ALL_BAM)
 TARGETS.extend(ALL_DOWNSAMPLE_BAM)
 TARGETS.extend(ALL_INDEX)
@@ -74,7 +71,6 @@ TARGETS.extend(ALL_PHATOM)
 TARGETS.extend(ALL_PEAKS)
 TARGETS.extend(ALL_BIGWIG)
 TARGETS.extend(ALL_inputSubtract_BIGWIG)
-TARGETS.extend(ALL_FASTQ)
 TARGETS.extend(ALL_FLAGSTAT)
 TARGETS.extend(ALL_QC)
 TARGETS.extend(ALL_SUPER)
@@ -100,31 +96,86 @@ rule all:
 
 ## get a list of fastq.gz files for the same mark, same sample
 def get_input_files(wildcards):
-    sample = "_".join(wildcards.sample.split("_")[0:-1])
+    sample_name = "_".join(wildcards.sample.split("_")[0:-1])
     mark = wildcards.sample.split("_")[-1]
-    if config["from_fastq"]:
-        if config["paired_end"]:
-            return  FILES[sample_name][mark]['R1'] + FILES[sample_name][mark]['R2']
-        ## single end sequencing
-        if not config["paired_end"]:
-            return FILES[sample_name][mark]['R1']
+    if not config["paired_end"]:
+        return FILES[sample_name][mark]['R1']
     ## start with bam files
     if not config["from_fastq"]:
         return FILES[sample_name][mark]
 
+def get_R1_files(wildcards):
+    sample_name = "_".join(wildcards.sample.split("_")[0:-1])
+    mark = wildcards.sample.split("_")[-1]
+    if config["from_fastq"]:
+        if config["paired_end"]:
+            return  FILES[sample_name][mark]['R1']
 
-rule fastqc:
-    input:  "01seq/{sample}.fastq"
-    output: "02fqc/{sample}_fastqc.zip", "02fqc/{sample}_fastqc.html"
-    log:    "00log/{sample}_fastqc"
-    threads: CLUSTER["fastqc"]["cpu"]
-    params : jobname = "{sample}"
-    message: "fastqc {input}: {threads}"
-    shell:
-        """
-        module load fastqc
-        fastqc -o 02fqc -f fastq --noextract {input} 2> {log}
-        """
+def get_R2_files(wildcards):
+    sample_name = "_".join(wildcards.sample.split("_")[0:-1])
+    mark = wildcards.sample.split("_")[-1]
+    if config["from_fastq"]:
+        if config["paired_end"]:
+            return  FILES[sample_name][mark]['R2']
+
+## when there are multiple fastq.gz for the same sample, same mark, merge them.
+if config["paired_end"]:
+    rule merge_fastqs:
+        input:
+            r1 = get_R1_files,
+            r2 = get_R2_files
+        output:
+            temp("01seq/{sample}_R1.fastq.gz"), temp("01seq/{sample}_R2.fastq.gz")
+        log: "00log/{sample}_merge_fastq.log"
+        params:
+            jobname = "{sample}"
+        threads: 1
+        message: "merging fastqs {input}: {threads} threads"
+        shell:
+            """
+            gunzip -c {input.r1} | gzip > {output[0]} 2> {log}
+            gunzip -c {input.r2} | gzip > {output[1]} 2>> {log}
+            """
+else:
+    rule merge_fastqs:
+        input: get_input_files
+        output: temp("01seq/{sample}.fastq.gz")
+        log: "00log/{sample}_unzip"
+        threads: CLUSTER["merge_fastqs"]["n"]
+        params: jobname = "{sample}"
+        message: "merging fastqs gunzip -c {input} > {output}"
+        shell: "gunzip -c {input} | gzip > {output} 2> {log}"
+
+
+
+
+if config["paired_end"]:
+    rule fastqc:
+        input:  "01seq/{sample}_R1.fastq.gz", "01seq/{sample}_R2.fastq.gz"
+        output: "02fqc/{sample}_R1_fastqc.zip", "02fqc/{sample}_R2_fastqc.zip"
+        log:    "00log/{sample}_fastqc"
+        threads: 1
+        params : jobname = "{sample}"
+        message: "fastqc {input}: {threads}"
+        shell:
+            """
+            # fastqc works fine on .gz file as well
+            module load fastqc
+            fastqc -o 02fqc -f fastq --noextract {input[0]} {input[1]} 2> {log}
+            """
+else:
+    rule fastqc:
+        input:  "01seq/{sample}.fastq.gz"
+        output: "02fqc/{sample}_fastqc.zip", "02fqc/{sample}_fastqc.html"
+        log:    "00log/{sample}_fastqc"
+        threads: CLUSTER["fastqc"]["n"]
+        params : jobname = "{sample}"
+        message: "fastqc {input}: {threads}"
+        shell:
+            """
+            module load fastqc
+            fastqc -o 02fqc -f fastq --noextract {input} 2> {log}
+            """
 
 # get the duplicates marked sorted bam, remove unmapped reads by samtools view -F 4 and dupliated reads by samblaster -r
 # samblaster should run before samtools sort
@@ -148,11 +199,12 @@ rule fastqc:
 ## Now: -R "@RG\\tID:1\\tLB:LIBRARY\\tPL:illumina\\tSM:sample1\\tPU:AB1234"
 
 
-if config["from_fastq"]:
+if config["from_fastq"] and config["paired_end"]:
     rule align:
-        input:  get_input_files
+        input:  r1 = "01seq/{sample}_R1.fastq.gz",
+                r2 = "01seq/{sample}_R2.fastq.gz"
         output: "03aln/{sample}.sorted.bam", "03aln/{sample}.sorted.bam.bai", "00log/{sample}.align"
-        threads: CLUSTER["align"]["cpu"]
+        threads: CLUSTER["align"]["n"]
         params:
                 jobname = "{sample}",
                 ## add read group for bwa mem mapping, change accordingly if you know PL:ILLUMINA, LB:library1 PI:200 etc...
@@ -162,52 +214,67 @@ if config["from_fastq"]:
             bwa = "00log/{sample}.align",
             markdup = "00log/{sample}.markdup"
         run:
-            ## paired end reads
-            if config["paired_end"]:
-                if config["long_reads"]:
-                    shell(
-                        r"""
-                        bwa mem -t 5 -M -v 1 -R '{params.rg}' {config[ref_fa]} {input[0]} {input[1]} 2> {log.bwa} \
-                        | samblaster 2> {log.markdup} \
-                        | samtools sort -m 2G -@ 5 -T {output[0]}.tmp -o {output[0]}
-                        samtools index {output[0]}
-                        """)
-                ## short reads < 70bp
-                ## Probably one of the most important is how many mismatches you will allow between a read and a potential mapping location for that location to be considered a match.
-                ## The default is 4% of the read length, but you can set this to be either another proportion of the read length, or a fixed integer
-                else:
-                    shell(
-                        r"""
-                        bwa aln -t 5 {config[ref_fa]} {input[0]} 2> {log.bwa} > 0aln/{wildcards.sample}_R1.sai
-                        bwa aln -t 5 {config[ref_fa]} {input[1]} 2>> {log.bwa} > 01aln/{wildcards.sample}_R2.sai
-                        bwa sampe -r '{params.rg}' {config[ref_fa]} 01aln/{wildcards.sample}_R1.sai 01aln/{wildcards.sample}_R2.sai {input[0]} {input[1]} 2>> {log.bwa} \
-                        | samblaster 2> {log.markdup} \
-                        | samtools sort -m 2G -@ 5 -T {output[0]}.tmp -o {output[0]}
-                        rm 01aln/{wildcards.sample}_R1.sai 01aln/{wildcards.sample}_R2.sai
-                        samtools index {output[0]}
-                        """)
-
-            # single end  reads
+            if config["long_reads"]:
+                shell(
+                    r"""
+                    bwa mem -t 5 -M -v 1 -R '{params.rg}' {config[ref_fa]} {input[0]} {input[1]} 2> {log.bwa} \
+                    | samblaster -r 2> {log.markdup} \
+                    | samtools view -Sb -F 4 - \
+                    | samtools sort -m 2G -@ 5 -T {output[0]}.tmp -o {output[0]}
+                    samtools index {output[0]}
+                    """)
+            ## short reads < 70bp
+            ## Probably one of the most important is how many mismatches you will allow between a read and a potential mapping location for that location to be considered a match.
+            ## The default is 4% of the read length, but you can set this to be either another proportion of the read length, or a fixed integer
             else:
-                if config["long_reads"]:
-                    shell(
-                        r"""
-                        bwa mem -t 5 -M -v 1 -R '{params.rg}' {config[ref_fa]} {input} 2> {log.bwa} \
-                        | samblaster 2> {log.markdup} \
-                        | samtools sort -m 2G -@ 5 -T {output[0]}.tmp -o {output[0]}
-                        samtools index {output[0]}
-                        """)
-                ## short reads < 70bp
-                else:
-                    shell(
-                        r"""
-                        bwa aln -t 5 {config[ref_fa]} {input} 2> {log.bwa} > 01aln/{wildcards.sample}.sai
-                        bwa samse -r '{params.rg}' {config[ref_fa]} 01aln/{wildcards.sample}.sai {input} 2>> {log.bwa} \
-                        | samblaster 2> {log.markdup} \
-                        | samtools sort -m 2G -@ 5 -T {output[0]}.tmp -o {output[0]}
-                        rm 01aln/{wildcards.sample}.sai
-                        samtools index {output[0]}
-                        """)
+                shell(
+                    r"""
+                    bwa aln -t 5 {config[ref_fa]} {input[0]} 2> {log.bwa} > 0aln/{wildcards.sample}_R1.sai
+                    bwa aln -t 5 {config[ref_fa]} {input[1]} 2>> {log.bwa} > 01aln/{wildcards.sample}_R2.sai
+                    bwa sampe -r '{params.rg}' {config[ref_fa]} 01aln/{wildcards.sample}_R1.sai 01aln/{wildcards.sample}_R2.sai {input[0]} {input[1]} 2>> {log.bwa} \
+                    | samblaster -r 2> {log.markdup} \
+                    | samtools view -Sb -F 4 - \
+                    | samtools sort -m 2G -@ 5 -T {output[0]}.tmp -o {output[0]}
+                    rm 01aln/{wildcards.sample}_R1.sai 01aln/{wildcards.sample}_R2.sai
+                    samtools index {output[0]}
+                    """)
+
+
+if config["from_fastq"] and not config["paired_end"]:
+    rule align:
+        input:  "01seq/{sample}.fastq.gz"
+        output: "03aln/{sample}.sorted.bam", "03aln/{sample}.sorted.bam.bai", "00log/{sample}.align"
+        threads: CLUSTER["align"]["n"]
+        params:
+                jobname = "{sample}",
+                ## add read group for bwa mem mapping, change accordingly if you know PL:ILLUMINA, LB:library1 PI:200 etc...
+                rg = "@RG\\tID:{sample}\\tSM:{sample}"
+        message: "aligning bwa {input}: {threads} threads"
+        log:
+            bwa = "00log/{sample}.align",
+            markdup = "00log/{sample}.markdup"
+        run:
+            if config["long_reads"]:
+                shell(
+                    r"""
+                    bwa mem -t 5 -M -v 1 -R '{params.rg}' {config[ref_fa]} {input} 2> {log.bwa} \
+                    | samblaster -r 2> {log.markdup} \
+                    | samtools view -Sb -F 4 - \
+                    | samtools sort -m 2G -@ 5 -T {output[0]}.tmp -o {output[0]}
+                    samtools index {output[0]}
+                    """)
+            ## short reads < 70bp
+            else:
+                shell(
+                    r"""
+                    bwa aln -t 5 {config[ref_fa]} {input} 2> {log.bwa} > 01aln/{wildcards.sample}.sai
+                    bwa samse -r '{params.rg}' {config[ref_fa]} 01aln/{wildcards.sample}.sai {input} 2>> {log.bwa} \
+                    | samblaster -r 2> {log.markdup} \
+                    | samtools view -Sb -F 4 - \
+                    | samtools sort -m 2G -@ 5 -T {output[0]}.tmp -o {output[0]}
+                    rm 01aln/{wildcards.sample}.sai
+                    samtools index {output[0]}
+                    """)
 
 # check number of reads mapped by samtools flagstat, the output will be used for downsampling
 rule flagstat_bam:
@@ -227,12 +294,12 @@ rule phantom_peak_qual:
     output: "05phantompeakqual/{sample}_phantom.txt"
     log: "00log/{sample}_phantompeakqual.log"
     threads: 4
-    params: jobname = "{sample}"
+    params: jobname = "{sample}",
     message: "phantompeakqual for {input}"
     shell:
         """
-	source activate root
-        Rscript  /scratch/genomic_med/apps/phantompeak/phantompeakqualtools/run_spp_nodups.R -c={input[0]} -savp -rf -p=4 -odir=05phantompeakqual  -out={output} -tmpdir=05phantompeakqual 2> {log}
+	    source activate root
+        Rscript  {config[phantom_path]} -c={input[0]} -savp -rf -p=4 -odir=05phantompeakqual  -out={output} -tmpdir=05phantompeakqual 2> {log}
 
         """
 
@@ -265,13 +332,12 @@ rule down_sample:
 rule make_inputSubtract_bigwigs:
     input : "04aln_downsample/{control}-downsample.sorted.bam", "04aln_downsample/{case}-downsample.sorted.bam", "04aln_downsample/{control}-downsample.sorted.bam.bai", "04aln_downsample/{case}-downsample.sorted.bam.bai"
     output:  "06bigwig_inputSubtract/{case}_subtract_{control}.bw"
-    log: "00log/{case}_inputSubtract.makebw"
+    log: "00log/{case}_subtract_{control}.makebw"
     threads: 5
-    params: jobname = "{case}"
+    params: jobname = "{case}_{control}"
     message: "making input subtracted bigwig for {input}"
     shell:
         """
-	source activate root
         bamCompare --bamfile1 {input[1]} --bamfile2 {input[0]} --normalizeUsingRPKM --ratio subtract --binSize 30 --smoothLength 300 -p 5  --extendReads 200 -o {output} 2> {log}
 
         """
@@ -285,11 +351,8 @@ rule make_bigwigs:
     message: "making bigwig for {input}"
     shell:
         """
-    source activate root
         bamCoverage -b {input[0]} --normalizeUsingRPKM --binSize 30 --smoothLength 300 -p 5 --extendReads 200 -o {output} 2> {log}
         """
-
-
 
 rule call_peaks_macs1:
     input: control = "04aln_downsample/{control}-downsample.sorted.bam", case="04aln_downsample/{case}-downsample.sorted.bam"
@@ -333,19 +396,35 @@ rule call_peaks_macs2:
             --outdir 09peak_macs2 -n {params.name} -p {config[macs2_pvalue]} --broad --broad-cutoff {config[macs2_pvalue_broad]} --nomodel &> {log}
         """
 
-rule multiQC:
-    input :
-        expand("00log/{sample}.align", sample = ALL_SAMPLES),
-        expand("03aln/{sample}.sorted.bam.flagstat", sample = ALL_SAMPLES),
-        expand("02fqc/{sample}_fastqc.zip", sample = ALL_SAMPLES)
-    output: "10multiQC/multiQC_log.html"
-    log: "00log/multiqc.log"
-    message: "multiqc for all logs"
-    shell:
-        """
-        multiqc 02fqc 03aln 00log -o 10multiQC -d -f -v -n multiQC_log 2> {log}
+
+if config["paired_end"]:
+    rule multiQC:
+        input :
+            expand("00log/{sample}.align", sample = ALL_SAMPLES),
+            expand("03aln/{sample}.sorted.bam.flagstat", sample = ALL_SAMPLES),
+            expand("02fqc/{sample}_{reads}_fastqc.zip", sample = ALL_SAMPLES, reads = ['R1', 'R2'])
+        output: "10multiQC/multiQC_log.html"
+        log: "00log/multiqc.log"
+        message: "multiqc for all logs"
+        shell:
+            """
+            multiqc 02fqc 03aln 00log -o 10multiQC -d -f -v -n multiQC_log 2> {log}
 
         """
+else:
+    rule multiQC:
+        input :
+            expand("00log/{sample}.align", sample = ALL_SAMPLES),
+            expand("03aln/{sample}.sorted.bam.flagstat", sample = ALL_SAMPLES),
+            expand("02fqc/{sample}_fastqc.zip", sample = ALL_SAMPLES)
+        output: "10multiQC/multiQC_log.html"
+        log: "00log/multiqc.log"
+        message: "multiqc for all logs"
+        shell:
+            """
+            multiqc 02fqc 03aln 00log -o 10multiQC -d -f -v -n multiQC_log 2> {log}
+
+            """
 
 ## ROSE has to be run inside the folder where ROSE_main.py resides.
 ## symbolic link the rose folder to the snakefile folder can be one alternative solution.
@@ -354,10 +433,10 @@ rule superEnhancer:
             "04aln_downsample/{control}-downsample.sorted.bam.bai", "04aln_downsample/{case}-downsample.sorted.bam.bai",
             "08peak_macs1/{case}_vs_{control}_macs1_peaks.bed"
     output: "11superEnhancer/{case}_vs_{control}-super/"
-    log: "00log/{case}_superEnhancer.log"
+    log: "00log/{case}_vs_{control}_superEnhancer.log"
     threads: 4
     params:
-            jobname = "{case}",
+            jobname = "{case}_vs_{control}",
             outputdir = os.path.dirname(srcdir("00log"))
     shell:
         """
@@ -412,10 +491,11 @@ if config["chromHMM"]:
             "13chromHMM/binarizedData"
         log:
             chromhmm_binarize = "00log/chromhmm_bin.log"
-        params: chromhmm = "-mx12000M -jar /scratch/genomic_med/apps/chromhmm/chromhmm_v1.11/ChromHMM.jar"
         shell:
             """
-            java {params.chromhmm} BinarizeBed -b {config[binsize]}  /scratch/genomic_med/apps/chromhmm/chromhmm_v1.11/CHROMSIZES/{config[chromHmm_g]}.txt 12bed/ 12bed/cellmarkfiletable.txt {output} 2> {log.chromhmm_binarize}
+            java -mx12000M -jar {config[chromHMM_path]}ChromHMM.jar BinarizeBed -b {config[binsize]} \
+            {config[chromHMM_path]}CHROMSIZES/{config[chromHmm_g]}.txt \
+            12bed/ 12bed/cellmarkfiletable.txt {output} 2> {log.chromhmm_binarize}
             """
 
 if config["chromHMM"]:
@@ -423,8 +503,7 @@ if config["chromHMM"]:
         input: "13chromHMM/binarizedData"
         output: "13chromHMM/MYOUTPUT"
         log: chromhmm_learn = "00log/chromhmm_learn.log"
-        params: chromhmm = "-mx12000M -jar /scratch/genomic_med/apps/chromhmm/chromhmm_v1.11/ChromHMM.jar"
         shell:
             """
-            java {params.chromhmm} LearnModel -p 10 -b {config[binsize]} {input} {output} {config[state]} {config[chromHmm_g]} 2> {log.chromhmm_learn}
+            java -mx12000M -jar {config[chromHMM_path]}ChromHMM.jar LearnModel -p 10 -b {config[binsize]} {input} {output} {config[state]} {config[chromHmm_g]} 2> {log.chromhmm_learn}
             """
