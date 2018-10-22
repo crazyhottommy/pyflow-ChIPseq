@@ -1,109 +1,102 @@
 {
     "__default__" :
     {
-        "time" : "00:15",
-        "cpu": 1,
-        "email" : "mtang1@mdanderson.org",
-        "EmailNotice": "N",
-        "MaxMem": 16384,
-        "queue" : "short"
+        "time" : "00:40:00",
+        "N" : 1,
+        "n": 1,
+        "mem": 4000,
+        "p" : "shared",
+        "name" : "{rule}.{wildcards}",
+        "output": "sbatch/{rule}.{wildcards}.out",
+        "error": "sbatch/{rule}.{wildcards}.err"
     },
     "merge_fastqs" :
     {
-        "time" : "0:30",
-        "cpu" : 1
+        "time" : "01:00:00",
+        "n" : 1
     },
     "fastqc":
     {
-        "time" : "1:00",
-        "cpu" : 1
-    },
-    "clean_fastq":
-    {
-        "time" : "1:00",
-        "cpu" : 6
+        "time" : "01:00:00",
+        "n" : 1
     },
     "align":
     {
-        "time" : "04:00",
-        "MaxMem": 32768,
-        "cpu" : 5,
-        "queue" : "medium"
+        "time" : "05:00:00",
+        "mem": 32768,
+        "n" : 5
     },
     "sort_bam":
     {
-        "time" : "01:00",
-        "MaxMem": 32768,
-        "cpu" : 5
+        "time" : "01:00:00",
+        "mem": 16384,
+        "n" : 5
     },
     "index_bam":
     {
-        "time" : "00:20"
+        "time" : "00:20:00"
     },
     "flagstat_bam":
     {
-        "time" : "00:30"
+        "time" : "00:30:00"
     },
     "down_sample":
     {
-        "time" : "01:00",
-        "cpu" : 5
+        "time" : "01:00:00",
+        "n" : 5,
+        "mem": 16384
     },
     "phantom_peak_qual":
     {
-        "time": "01:00",
-	    "cpu" : 4
+        "time": "01:00:00",
+	    "n" : 4
     },
     "call_peaks_macs1":
     {
-        "time" : "02:30",
-        "queue" : "medium"
+        "time" : "02:30:00"
     },
     "call_peaks_macs2":
-    {   "time" : "02:00",
-        "queue" : "medium"
+    {   
+        "time" : "02:00:00"
     },
     "make_bigwigs":
     {
-        "time" : "03:00",
-        "MaxMem": 32768,
-        "cpu" : 5,
-        "queue" : "medium"
+        "time" : "03:00:00",
+        "mem": 16384,
+        "n" : 5
     },
     "make_inputSubtract_bigwigs":
     {
-        "time" : "03:00",
-        "MaxMem": 32768,
-        "cpu" : 5,
-        "queue" : "medium"
+        "time" : "03:00:00",
+        "mem": 16384,
+        "n" : 5
     },
     "multiQC" :
     {
-        "time" : "00:10"
+        "time" : "00:30:00"
     },
     "bam2bed" :
     {
-        "time": "01:00"
+        "time": "01:00:00"
     },
     "make_table":
     {
-        "time": "00:10"
+        "time": "00:10:00"
     },
     "chromHmm_binarize":
     {
-        "time": "4:00",
-        "queue" : "medium"
+        "time": "04:00:00"
     },
     "chromHmm_learn":
     {
-        "time": "24:00",
-        "cpu": 10,
-        "queue": "medium"
+        "time": "24:00:00",
+        "n": 10,
+        "mem": 32768
     },
     "superEnhancer":
     {
-        "time": "8:00",
+        "time": "8:00:00",
         "cpu": 4,
-        "queue" : "medium"
+        "mem" : 32768
     }
 }

@@ -8,7 +8,7 @@ control: 'Input'
 
 ref_fa: /n/regal/informatics_public/reference_genome_by_tommy/ucsc/mm9/mm9.fa
 macs_g: mm
-macs_pvalue: 1e-5
+macs_pvalue: 1e-8
 macs2_g: mm
 macs2_pvalue: 1e-5
 macs2_pvalue_broad: 1e-5

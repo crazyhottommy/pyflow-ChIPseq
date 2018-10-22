@@ -2,46 +2,52 @@
     "LKR10": {
         "Input": {
             "R1": [
-                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Input_LKR10_1.fq.gz"
+                "/n/holylfs/LABS/informatics/mtang/projects/MLL2_hunain/MLL2_ChIPseq/raw_fastqs/Input_LKR10_1.fq.gz"
             ],
             "R2": [
-                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Input_LKR10_2.fq.gz"
+                "/n/holylfs/LABS/informatics/mtang/projects/MLL2_hunain/MLL2_ChIPseq/raw_fastqs/Input_LKR10_2.fq.gz"
             ]
         },
         "Mll4": {
             "R1": [
-                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Mll4_LKR10_1.fq.gz"
+                "/n/holylfs/LABS/informatics/mtang/projects/MLL2_hunain/MLL2_ChIPseq/raw_fastqs/Mll4_LKR10_1.fq.gz"
             ],
             "R2": [
-                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Mll4_LKR10_2.fq.gz"
+                "/n/holylfs/LABS/informatics/mtang/projects/MLL2_hunain/MLL2_ChIPseq/raw_fastqs/Mll4_LKR10_2.fq.gz"
             ]
         },
-        "Per2": {
+        "Per2A": {
             "R1": [
-                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Per2_A_LKR10_1.fq.gz",
-                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Per2_B_LKR10_1.fq.gz"
+                "/n/holylfs/LABS/informatics/mtang/projects/MLL2_hunain/MLL2_ChIPseq/raw_fastqs/Per2_A_LKR10_1.fq.gz"
             ],
             "R2": [
-                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Per2_A_LKR10_2.fq.gz",
-                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Per2_B_LKR10_2.fq.gz"
+                "/n/holylfs/LABS/informatics/mtang/projects/MLL2_hunain/MLL2_ChIPseq/raw_fastqs/Per2_A_LKR10_2.fq.gz"
+            ]
+        },
+        "Per2B": {
+            "R1": [
+                "/n/holylfs/LABS/informatics/mtang/projects/MLL2_hunain/MLL2_ChIPseq/raw_fastqs/Per2_B_LKR10_1.fq.gz"
+            ],
+            "R2": [
+                "/n/holylfs/LABS/informatics/mtang/projects/MLL2_hunain/MLL2_ChIPseq/raw_fastqs/Per2_B_LKR10_2.fq.gz"
             ]
         }
     },
     "V6_5": {
         "Input": {
             "R1": [
-                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Input_V6_5_1.fq.gz"
+                "/n/holylfs/LABS/informatics/mtang/projects/MLL2_hunain/MLL2_ChIPseq/raw_fastqs/Input_V6_5_1.fq.gz"
             ],
             "R2": [
-                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Input_V6_5_2.fq.gz"
+                "/n/holylfs/LABS/informatics/mtang/projects/MLL2_hunain/MLL2_ChIPseq/raw_fastqs/Input_V6_5_2.fq.gz"
             ]
         },
         "Per2": {
             "R1": [
-                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Per2_B_V6_5_1.fq.gz"
+                "/n/holylfs/LABS/informatics/mtang/projects/MLL2_hunain/MLL2_ChIPseq/raw_fastqs/Per2_B_V6_5_1.fq.gz"
             ],
             "R2": [
-                "/n/home02/mtang/projects/MLL2_ChIPseq/raw_fastqs/Per2_B_V6_5_2.fq.gz"
+                "/n/holylfs/LABS/informatics/mtang/projects/MLL2_hunain/MLL2_ChIPseq/raw_fastqs/Per2_B_V6_5_2.fq.gz"
             ]
         }
     }

@@ -156,7 +156,7 @@ if config["paired_end"]:
         log:    "00log/{sample}_fastqc"
         threads: 1
         params : jobname = "{sample}"
-        message: "fastqc {input}: {threads}"
+        message: "fastqc {input}: {threads} threads"
         shell:
             """
             # fastqc works fine on .gz file as well
@@ -351,7 +351,7 @@ rule make_bigwigs:
     message: "making bigwig for {input}"
     shell:
         """
-        bamCoverage -b {input[0]} --normalizeUsingRPKM --binSize 30 --smoothLength 300 -p 5 --extendReads 200 -o {output} 2> {log}
+        bamCoverage -b {input[0]} --normalizeUsing RPKM --binSize 30 --smoothLength 300 -p 5 --extendReads 200 -o {output} 2> {log}
         """
 
 rule call_peaks_macs1:
@@ -368,13 +368,13 @@ rule call_peaks_macs1:
     shell:
         """
 	    source activate py27
-        macs14 -t {input.case} \
+        macs -t {input.case} \
             -c {input.control} --keep-dup all -f BAM -g {config[macs_g]} \
             --outdir 08peak_macs1 -n {params.name1} -p {config[macs_pvalue]} &> {log.macs1}
 
         # nomodel for macs14, shift-size will be 100 bp (e.g. fragment length of 200bp)
         # can get fragment length from the phantompeakqual. Now set it to 200 bp for all.
-        macs14 -t {input.case} \
+        macs -t {input.case} \
             -c {input.control} --keep-dup all -f BAM -g {config[macs_g]} \
             --outdir 08peak_macs1 -n {params.name2} --nomodel -p {config[macs_pvalue]} &> {log.macs1_nomodel}
         """
