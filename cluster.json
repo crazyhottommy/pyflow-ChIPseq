@@ -7,8 +7,8 @@
         "mem": 4000,
         "p" : "shared",
         "name" : "{rule}.{wildcards}",
-        "output": "sbatch/{rule}.{wildcards}.out",
-        "error": "sbatch/{rule}.{wildcards}.err"
+        "output": "sbatch_log/{rule}.{wildcards}.out",
+        "error": "sbatch_log/{rule}.{wildcards}.err"
     },
     "merge_fastqs" :
     {
