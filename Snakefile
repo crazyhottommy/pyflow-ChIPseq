@@ -507,3 +507,11 @@ if config["chromHMM"]:
             """
             java -mx12000M -jar {config[chromHMM_path]}ChromHMM.jar LearnModel -p 10 -b {config[binsize]} {input} {output} {config[state]} {config[chromHmm_g]} 2> {log.chromhmm_learn}
             """
+
+on success:
+	print("Success: Snakemake completed!")
+	shell("mail -s 'Snakemake workflow completed: Have a beer!' {config[email]} < {log}")
+
+onerror:
+	print("Error: Snakemake aborted!")
+	shell("mail -s 'Snakemake workflow aborted: Have a coffee and see log inside!' {config[email]} < {log}")
