@@ -1,3 +1,5 @@
+# email for sending the finishing and error message
+email: tangming2005@gmail.com
 from_fastq: True
 paired_end: True
 # >70bp long, <70bp false
