@@ -223,7 +223,7 @@ rule make_inputSubtract_bigwigs:
     shell:
         """
 	source activate root
-        bamCompare --bamfile1 {input[1]} --bamfile2 {input[0]} --normalizeUsingRPKM --ratio subtract --binSize 30 --smoothLength 300 -p 5  --extendReads 200 -o {output} 2> {log}
+        bamCompare --bamfile1 {input[1]} --bamfile2 {input[0]} --normalizeUsing RPKM --ratio subtract --binSize 30 --smoothLength 300 -p 5  --extendReads 200 -o {output} 2> {log}
 
         """
 
@@ -237,7 +237,7 @@ rule make_bigwigs:
     shell:
         """
     source activate root
-        bamCoverage -b {input[0]} --normalizeUsingRPKM --binSize 30 --smoothLength 300 -p 5 --extendReads 200 -o {output} 2> {log}
+        bamCoverage -b {input[0]} --normalizeUsing RPKM --binSize 30 --smoothLength 300 -p 5 --extendReads 200 -o {output} 2> {log}
         """
 
 
