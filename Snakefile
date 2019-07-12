@@ -184,9 +184,9 @@ rule down_sample:
 rule make_inputSubtract_bigwigs:
     input : "04aln_downsample/{control}-downsample.sorted.bam", "04aln_downsample/{case}-downsample.sorted.bam", "04aln_downsample/{control}-downsample.sorted.bam.bai", "04aln_downsample/{case}-downsample.sorted.bam.bai"
     output:  "06bigwig_inputSubtract/{case}_subtract_{control}.bw"
-    log: "00log/{case}_inputSubtract.makebw"
+    log: "00log/{case}_vs_{control}_inputSubtract.makebw"
     threads: 5
-    params: jobname = "{case}"
+    params: jobname = "{case}_vs_{control}"
     message: "making input subtracted bigwig for {input}"
     shell:
         """
@@ -273,7 +273,7 @@ rule superEnhancer:
             "04aln_downsample/{control}-downsample.sorted.bam.bai", "04aln_downsample/{case}-downsample.sorted.bam.bai",
             "08peak_macs1/{case}_vs_{control}_macs1_peaks.bed"
     output: "11superEnhancer/{case}_vs_{control}-super/"
-    log: "00log/{case}_superEnhancer.log"
+    log: "00log/{case}_vs_{control}_superEnhancer.log"
     params: 
             jobname = "{case}", 
             outputdir = os.path.dirname(srcdir("00log"))
