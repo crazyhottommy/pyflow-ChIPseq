@@ -85,24 +85,22 @@ There will be [Integration of conda package management into Snakemake](https://b
 read [doc](https://snakemake.readthedocs.io/en/stable/snakefiles/deployment.html)
 
 ```bash
+# if you have a high performance cluster access
 ssh shark.mdanderson.org
 
 # start a screen session
 screen
 
 # make a folder, name it yourself, I named it workdir for demon
-mkdir /rsch2/genomic_med/krai/workdir/
+mkdir workdir
 
-cd /rsch2/genomic_med/krai/workdir/
+cd workdir
 
 git clone https://github.com/crazyhottommy/pyflow-ChIPseq
 
 cd pyflow-ChIPseq
 
-## go to downsampling branch. shark is LSF system
-git checkout shark
-
-## edit the config.yaml file as needed, e.g. set mouse or human for ref genome, p value cut off for peak calling, the number of reads you want to downsample to
+## edit the config.yaml file as needed, e.g. set mouse or human for ref genome, p value cut off for peak calling, the number of reads you want to downsample to, whether you want to run chromHMM or not, paired end or single end reads
 nano config.yaml
 
 ## skip this if on Shark, samir has py351 set up for you. see below STEPS
@@ -114,21 +112,41 @@ source activate snakemake
 
 ### Download the sra files
 
-Prepare a txt file `SRR.txt` which has three columns: sample_name, fastq_name, and factor:
+Prepare a txt file `SRR.txt` which has four columns: `sample_name`, `fastq_name`, `factor` and `reads`:
 
 e.g.
+
+
+This is for single-end fastqs.
 
 ```bash
 cat SRR.txt
 
-sample_name fastq_name  factor
-MOLM-14_DMSO1_5 SRR2518123   BRD4
-MOLM-14_DMSO1_5 SRR2518124  Input
-MOLM-14_DMSO2_6 SRR2518125  BRD4
-MOLM-14_DMSO2_6 SRR2518126  Input
-
+sample_name fastq_name  factor  reads
+MOLM-14_DMSO1_5 SRR2518123_1.fq.gz   BRD4   R1
+MOLM-14_DMSO1_5 SRR2518124_1.fq.gz  Input   R1
+MOLM-14_DMSO2_6 SRR2518125_1.fq.gz  BRD4    R1
+MOLM-14_DMSO2_6 SRR2518126_1.fq.gz  Input   R1
 
 ```
+
+if fastqs are paried-end
+
+```bash
+cat SRR.txt 
+
+sample_name fastq_name  factor  reads
+MOLM-14_DMSO1_5 SRR2518123_1.fq.gz   BRD4   R1
+MOLM-14_DMSO1_5 SRR2518123_2.fq.gz   BRD4   R2
+MOLM-14_DMSO1_5 SRR2518124_1.fq.gz  Input   R1
+MOLM-14_DMSO1_5 SRR2518124_2.fq.gz  Input   R2
+MOLM-14_DMSO2_6 SRR2518125_1.fq.gz  BRD4    R1
+MOLM-14_DMSO2_6 SRR2518125_2.fq.gz  BRD4    R2
+MOLM-14_DMSO2_6 SRR2518126_1.fq.gz  Input   R1
+MOLM-14_DMSO2_6 SRR2518126_2.fq.gz  Input   R2
+```
+
+In this example, it is single-end.
 
 You can have mulitple different factors for the same sample_name.
 
@@ -243,45 +261,26 @@ set the `control` in the `config.ymal` file, which you are going to use for peak
 ```bash
 cd pyflow-ChIPseq
 cat meta.txt
-sample_name     fastq_name      factor  reference
-sample1 Li-Lane-1-1A-062817     CST-CHD1        mouse
-sample1 Li-Lane-1-1C-062817     Bethal-CHD1     mouse
-sample1 Li-Lane-1-1E-062817     IgG     mouse
-sample1 Li-Lane-4-7E-062817     Input   mouse
-sample2 Li-Lane-1-1B-062817     CST-CHD1        mouse
-sample2 Li-Lane-1-1D-062817     Bethal-CHD1     mouse
-sample2 Li-Lane-1-1F-062817     IgG     mouse
-sample2 Li-Lane-4-7F-062817     Input   mouse
-sample3 Li-Lane-2-3C-062817     SOX2    mouse
-sample3 Li-Lane-2-3D-062817     H3K27Ac mouse
-sample3 Li-Lane-4-7G-062817     Input   mouse
-sample4 Li-Lane-2-3E-062817     H3K9me3 mouse
-sample4 Li-Lane-3-5A-062817     H3K27Ac mouse
-sample4 Li-Lane-3-5E-062817     MYC     mouse
-sample4 Li-Lane-2-7H-062817     Input   mouse
-sample5 Li-Lane-2-3F-062817     H3K9me3 mouse
-sample5 Li-Lane-3-5B-062817     H3K27Ac mouse
-sample5 Li-Lane-3-9A-062817     Input   mouse
-sample6 Li-Lane-2-3G-062817     H3K9me3 mouse
-sample6 Li-Lane-3-5C-062817     H3K27Ac mouse
-sample6 Li-Lane-4-9B-062817     Input   mouse
-sample7 Li-Lane-2-3H-062817     H3K9me3 mouse
-sample7 Li-Lane-3-5D-062817     H3K27Ac mouse
-sample7 Li-Lane-3-5H-062817     MYC     mouse
-sample7 Li-Lane-4-9C-062817     Input   mouse
 
-
-## only the first 3 columns are required.
+sample_name fastq_name  factor  reads
+LKR10   Input_LKR10_1.fq.gz Input   R1
+LKR10   Input_LKR10_2.fq.gz Input   R2
+V6_5    Input_V6_5_1.fq.gz  Input   R1
+V6_5    Input_V6_5_2.fq.gz  Input   R2
+LKR10   Mll4_LKR10_1.fq.gz  Mll4    R1
+LKR10   Mll4_LKR10_2.fq.gz  Mll4    R2
+LKR10   Per2_A_LKR10_1.fq.gz    Per2A   R1
+LKR10   Per2_A_LKR10_2.fq.gz    Per2A   R2
+LKR10   Per2_B_LKR10_1.fq.gz    Per2B   R1
+LKR10   Per2_B_LKR10_2.fq.gz    Per2B   R2
+V6_5    Per2_B_V6_5_1.fq.gz Per2    R1
+V6_5    Per2_B_V6_5_2.fq.gz Per2    R2
 
 ## make a samples.json file
 python3 sample2json.py --fastq_dir dir/to/fastqs/ --meta meta.txt
 ```
 
-The real name of the fastq files:
-
-`/rsrch2/genomic_med/krai/zheng-ChIPseq-2/Sample_Li-Lane-1-1C-062817/Li-Lane-1-1C-062817_S24_L004_R1_001.fastq.gz`
-
-check the example `samples.json` file in the repo.
+check the example `samples.json` file in the repo to have an idea how the file format look like.
 
 Now, the same as the steps as processing the `sra` files
 
