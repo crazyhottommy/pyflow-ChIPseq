@@ -252,8 +252,8 @@ All jobs will be submitted to the cluster on queue.  This is useful if you know 
 
 Different People have different naming conventions, to accomondate this situation, I require them to give me a `meta.txt` tab delimited file to have the sample information.
 
-The `sample2json.py` script assumes that the fastq_name in the `meta.txt` file exist in the fastq files. Only the first three columns will be used.
-`factor`s from the same `sample_name` will be made into one group.
+The `sample2json.py` script assumes that the fastq_name in the `meta.txt` file exist in the fastq files. 
+`factor` from the same `sample_name` will be made into one group.
 
 set the `control` in the `config.ymal` file, which you are going to use for peak calling. e.g. Input, IgG
 
