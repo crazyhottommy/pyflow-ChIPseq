@@ -21,6 +21,8 @@ phantom_path: /n/home02/mtang/apps/phantompeakqualtools/run_spp.R
 rose_path: /n/home02/mtang/apps/ROSE/young_computation-rose-1a9bb86b5464
 rose_g: mm9
 
+## if downsample is false, will only do a symbolic link
+downsample: True
 #number of reads downsample to, I set to 50 million, if reads number smaller than
 ## 50 million, downsample will keep the orignal reads
 target_reads: 50000000

@@ -7,7 +7,7 @@ switch to a different branch to see the codes. now I have `shark` branch for the
 
 **UPDATE** 05/30/2017. Now, the pipeline can handle in-house data as well.
 
-Now, this is working on LSF, I will have another branch for Torque.
+This pairend branch works on slurm.
 
 ### Citation
 
