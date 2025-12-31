@@ -1,0 +1,8 @@
+name: peakcalling
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - macs3>=3.0.1
+  - python>=3.9

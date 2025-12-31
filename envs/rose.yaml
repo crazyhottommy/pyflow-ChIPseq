@@ -1,0 +1,13 @@
+name: rose
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python>=3.8
+  - pip
+  - samtools>=1.9
+  - r-base>=3.4
+  - bedtools>=2.0
+  - pip:
+    - pyrose2

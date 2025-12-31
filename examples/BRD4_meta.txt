@@ -1,0 +1,5 @@
+sample_name	fastq_name	factor	reads
+MOLM-14_DMSO1_5	SRR2518123.fastq.gz	BRD4	R1
+MOLM-14_DMSO1_5	SRR2518124.fastq.gz	Input	R1
+MOLM-14_DMSO2_6	SRR2518125.fastq.gz	BRD4	R1
+MOLM-14_DMSO2_6	SRR2518126.fastq.gz	Input	R1

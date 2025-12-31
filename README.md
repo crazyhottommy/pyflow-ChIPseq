@@ -1,415 +1,363 @@
-# pyflow-ChIPseq
-a snakemake pipeline to process ChIP-seq files from GEO
-
-I have so many people asking me to process a public GEO ChIP-seq data set for them. I hate to repeat the same steps and decide to make a pipeline for it.
-
-switch to a different branch to see the codes. now I have `shark` branch for the LSF system.
-
-**UPDATE** 05/30/2017. Now, the pipeline can handle in-house data as well.
-
-This pairend branch works on slurm.
-
-### Citation
-
-I created a doi on [zenodo](https://zenodo.org/).
-You can cite:
+# pyflow-ChIPseq: Modern ChIP-seq Analysis Pipeline
 
 [![DOI](https://zenodo.org/badge/89386223.svg)](https://zenodo.org/badge/latestdoi/89386223)
+[![Snakemake](https://img.shields.io/badge/snakemake-≥7.0-brightgreen.svg)](https://snakemake.readthedocs.io)
+[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-The pipeline was just [published in JOVE](https://www.jove.com/video/56972/an-integrated-platform-for-genome-wide-mapping-chromatin-states-using)!  please cite:
+A production-ready Snakemake pipeline for comprehensive ChIP-seq data analysis, from raw FASTQ files to peaks, bigWigs, and super-enhancers.
 
-```
-Terranova, C., Tang, M., Orouji, E., Maitituoheti, M., Raman, A., Amin, S., et al. An Integrated Platform for Genome-wide Mapping of Chromatin States Using High-throughput ChIP-sequencing in Tumor Tissues. J. Vis. Exp. (134), e56972, doi:10.3791/56972 (2018).
-```
+---
 
-### work flow of the pipeline
+## 📖 Table of Contents
 
-![](./rulegraph.png)
+- [Why pyflow-ChIPseq?](#-why-pyflow-chipseq)
+- [What Does It Do?](#-what-does-it-do)
+- [Pipeline Overview](#-pipeline-overview)
+- [How to Use](#-how-to-use)
+- [Citation](#-citation)
+- [Documentation](#-documentation)
+- [Support](#-support)
 
-In the `config.yaml` file you can change settings. e.g. path to a different genome to align, p value cut-offs. The `target_reads` is the number of reads that downsampled to. I set 15 million for default. If the number of reads of the orignal bam files are less than `target_reads`, the pipeline will just keep whatever the number it has.
+---
 
-### Dependiencies
+## 🎯 Why pyflow-ChIPseq?
 
-* [snakemake](https://bitbucket.org/snakemake/snakemake). snakemake is python3
-* R > 3.3.0
-you will need `optparse` package. `install.packages("optparse")`
-`SRAdb`
+### The Problem
 
-```r
-source("https://bioconductor.org/biocLite.R")
-biocLite("SRAdb")
-```
+ChIP-seq data analysis requires coordinating dozens of bioinformatics tools with precise parameter settings. Manual analysis is:
+- **Error-prone**: Easy to miss steps or use inconsistent parameters
+- **Time-consuming**: Repeated copy-pasting of commands for each sample
+- **Not reproducible**: Hard to track what was done and share methods
+- **Difficult to scale**: Processing 10+ samples manually is tedious
 
-```
- Rscript sraDownload.R  -a ascp -QT -l 300m -i ~/.aspera/connect/etc/asperaweb_id_dsa.openssh -t fastq SRR3144652
-```
+### The Solution
 
-This script will download the meta file for each SRR id as well.
+**pyflow-ChIPseq** automates the entire ChIP-seq workflow with:
+- ✅ **Reproducibility**: Conda environments ensure identical software versions
+- ✅ **Scalability**: Process 1 or 100 samples with the same command
+- ✅ **Automation**: One command runs QC → alignment → peaks → visualization
+- ✅ **Best practices**: Built-in quality control, duplicate removal, and normalization
+- ✅ **Cluster support**: Seamlessly scales from laptops to HPC clusters
+- ✅ **Modern tools**: Python 3, MACS3, updated samtools/deepTools
 
-* aspera for downloading
+### Who Is It For?
 
-check this blog post by MARK ZIEMANN http://genomespot.blogspot.com/2015/05/download-sra-data-with-aspera-command.html
+- **Bioinformaticians** processing ChIP-seq data routinely
+- **Researchers** who want reproducible analysis without manual steps
+- **Core facilities** standardizing ChIP-seq analysis across projects
+- **Labs** sharing methods and ensuring consistency
+
+---
+
+## 🔬 What Does It Do?
+
+### Inputs
+
+- **FASTQ files**: Single-end or paired-end ChIP-seq reads
+- **Reference genome**: FASTA file (human, mouse, or custom)
+- **Metadata**: Simple tab-delimited file describing your samples
+
+### Outputs
+
+| Output | Description | Use Case |
+|--------|-------------|----------|
+| **Peaks** | Narrow & broad peaks (MACS3) | Identify binding sites, histone marks |
+| **BigWigs** | RPKM-normalized & input-subtracted | Genome browser visualization (IGV, UCSC) |
+| **BAM files** | Aligned, deduplicated, downsampled | Further custom analysis |
+| **QC Reports** | MultiQC summary + phantompeakqual | Assess experiment quality |
+| **Super-enhancers** | ROSE2 calls (optional) | Identify regulatory elements |
+
+### Key Features
+
+#### Core Analysis
+- **Quality control**: FastQC + MultiQC comprehensive reports
+- **Alignment**: BWA mem (long reads) or BWA aln (short reads)
+- **Duplicate handling**: Removes PCR duplicates with samblaster
+- **Normalization**: Downsampling to target read depth (default 50M)
+- **Peak calling**: MACS3 narrow peaks (TFs) and broad peaks (histone marks)
+- **Visualization**: RPKM-normalized and input-subtracted bigWigs
+
+#### Advanced Features
+- **ChIP quality metrics**: Phantompeakqualtools NSC/RSC scores
+- **Super-enhancer calling**: ROSE2 (Python 3 port)
+- **Chromatin states**: ChromHMM support (optional)
+- **Flexible configuration**: Extensive parameters in config.yaml
+
+#### Technical Excellence
+- **Conda integration**: Automatic dependency management
+- **SLURM support**: Built-in cluster execution profiles
+- **Parallel processing**: Efficiently uses multiple cores
+- **Smart caching**: Only reruns changed steps
+- **Comprehensive logging**: All commands and outputs tracked
+
+---
+
+## 📊 Pipeline Overview
+
+![Pipeline Workflow](rulegraph_all.png)
+
+### Processing Steps
+
+1. **Input Processing**
+   - Merge technical replicates
+   - Quality control with FastQC
+
+2. **Alignment** (split for debugging)
+   - BWA alignment (mem or aln based on read length)
+   - Duplicate removal with samblaster
+   - BAM sorting and indexing
+
+3. **Quality Assessment**
+   - Flagstat metrics
+   - Phantompeakqualtools (NSC, RSC, fragment length)
+   - MultiQC aggregation
+
+4. **Normalization**
+   - Downsample to target read depth
+   - Normalize across samples
+
+5. **Peak Calling**
+   - MACS3 narrow peaks (q < 0.05)
+   - MACS3 broad peaks (q < 0.1)
+
+6. **Visualization**
+   - RPKM-normalized bigWigs
+   - Input-subtracted bigWigs
+
+7. **Advanced Analysis** (optional)
+   - ROSE2 super-enhancers
+   - ChromHMM chromatin states
+
+---
+
+## 🚀 How to Use
+
+### Quick Start (5 minutes)
+
+See **[QUICKSTART.md](QUICKSTART.md)** for a complete working example with public data.
 
 ```bash
-sh <(curl -s aspera-connect-3.6.2.117442-linux-64.sh)
-```
-
-`sraDownload.R` is under the `scripts` folder from [Luke Zappia](https://github.com/lazappi):
-
-```bash
-## single quote your ascp command, otherwise R will be confused
-Rscript sraDownload.R  -a 'ascp -QT -l 300m -i ~/.aspera/connect/etc/asperaweb_id_dsa.openssh' -t fastq SRR3144652
-
-```
-
-* [fastqc](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
-* `bamCoverage` v2.3.3 from [deeptools](https://github.com/fidelram/deepTools) for making RPKM normalized and input subtracted bigwig files
-* [bowtie1](http://bowtie-bio.sourceforge.net/index.shtml) for aligning short reads (< 50bp)
-* [samblaster](https://github.com/GregoryFaust/samblaster) v0.1.22 to remove duplicates and downsampling.
-* [samtools](http://www.htslib.org/) v1.3.1
-* [ROSE](http://younglab.wi.mit.edu/super_enhancer_code.html) for calling superEnhancer. ROSE has to be run inside the installation folder. now I hard coded the path in the Snakefile. (you will have to change that to the ROSE directory in your cluster). Todo: expose the path to the `config.yaml` file that one can change.
-* [macs1](https://pypi.python.org/pypi/MACS/1.4.2) v1.4.2 and [macs2](https://github.com/taoliu/MACS) v2.1.1 for calling peaks (macs2 for broad peaks).
-* [multiQC](http://multiqc.info/)
-* [phantompeakqual](https://github.com/kundajelab/phantompeakqualtools)
-
-
-`macs1`, `macs2` and `ROSE` are python2.x, see this [Using Snakemake and Macs2](https://groups.google.com/forum/#!searchin/snakemake/macs%7Csort:relevance/snakemake/60txGSq81zE/NzCUTdJ_AQAJ) in the snakemake google group.
-
-if you look inside the `Snakefile`, I did `source activate root` back to python2.x before running macs1 and macs2.
-
-There will be [Integration of conda package management into Snakemake](https://bitbucket.org/snakemake/snakemake/pull-requests/92/wip-integration-of-conda-package/diff)
-
-
-### How to distribute workflows
-
-read [doc](https://snakemake.readthedocs.io/en/stable/snakefiles/deployment.html)
-
-```bash
-# if you have a high performance cluster access
-ssh shark.mdanderson.org
-
-# start a screen session
-screen
-
-# make a folder, name it yourself, I named it workdir for demon
-mkdir workdir
-
-cd workdir
-
-git clone https://github.com/crazyhottommy/pyflow-ChIPseq
-
+# 1. Clone the repository
+git clone https://github.com/crazyhottommy/pyflow-ChIPseq.git
 cd pyflow-ChIPseq
+git checkout modernize-2025
 
-## edit the config.yaml file as needed, e.g. set mouse or human for ref genome, p value cut off for peak calling, the number of reads you want to downsample to, whether you want to run chromHMM or not, paired end or single end reads
-nano config.yaml
+# 2. Prepare your metadata file
+# See QUICKSTART.md for format
 
-## skip this if on Shark, samir has py351 set up for you. see below STEPS
-conda create -n snakemake python=3 -c bioconda multiqc snakemake deeptools
-source activate snakemake
+# 3. Generate samples.json
+python sample2json.py /path/to/fastq/ meta.txt
+
+# 4. Configure pipeline
+nano config.yaml  # Edit paths and parameters
+
+# 5. Run!
+snakemake --use-conda --cores 8
 ```
 
-## STEPS for fastq files from GEO
+### Full Installation
 
-### Download the sra files
+See **[INSTALL.md](INSTALL.md)** for:
+- Installing Snakemake and dependencies
+- Setting up reference genomes
+- Configuring SLURM clusters
+- Troubleshooting common issues
 
-Prepare a txt file `SRR.txt` which has four columns: `sample_name`, `fastq_name`, `factor` and `reads`:
+### Configuration
 
-e.g.
+Key settings in `config.yaml`:
 
+```yaml
+# Data type
+from_fastq: True          # Start from FASTQ (not BAM)
+paired_end: False         # Single-end or paired-end
+long_reads: True          # >70bp uses bwa mem, <70bp uses bwa aln
 
-This is for single-end fastqs.
+# Reference genome
+ref_fa: /path/to/genome.fa
+macs_g: mm                # mm (mouse) or hs (human)
 
+# Analysis parameters
+control: 'Input'          # Control sample name in metadata
+downsample: True          # Normalize read depth
+target_reads: 50000000    # Target reads after downsampling
+
+# Optional analyses
+run_phantompeakqual: True # ChIP quality metrics
+chromHMM: False           # Chromatin state modeling
+```
+
+### Running on Different Systems
+
+#### Local execution
 ```bash
-cat SRR.txt
-
-sample_name fastq_name  factor  reads
-MOLM-14_DMSO1_5 SRR2518123_1.fq.gz   BRD4   R1
-MOLM-14_DMSO1_5 SRR2518124_1.fq.gz  Input   R1
-MOLM-14_DMSO2_6 SRR2518125_1.fq.gz  BRD4    R1
-MOLM-14_DMSO2_6 SRR2518126_1.fq.gz  Input   R1
-
+snakemake --use-conda --cores 8
 ```
 
-if fastqs are paried-end
-
+#### SLURM cluster
 ```bash
-cat SRR.txt 
-
-sample_name fastq_name  factor  reads
-MOLM-14_DMSO1_5 SRR2518123_1.fq.gz   BRD4   R1
-MOLM-14_DMSO1_5 SRR2518123_2.fq.gz   BRD4   R2
-MOLM-14_DMSO1_5 SRR2518124_1.fq.gz  Input   R1
-MOLM-14_DMSO1_5 SRR2518124_2.fq.gz  Input   R2
-MOLM-14_DMSO2_6 SRR2518125_1.fq.gz  BRD4    R1
-MOLM-14_DMSO2_6 SRR2518125_2.fq.gz  BRD4    R2
-MOLM-14_DMSO2_6 SRR2518126_1.fq.gz  Input   R1
-MOLM-14_DMSO2_6 SRR2518126_2.fq.gz  Input   R2
+snakemake --profile profiles/slurm
 ```
 
-In this example, it is single-end.
-
-You can have mulitple different factors for the same sample_name.
-
-`sample_name_factor` will be used to name the output. e.g. :`MOLM-14_DMSO1_5_BRD4.sorted.bam`
-
-### download the sra files using the R script
-
+#### Dry run (see what will be executed)
 ```bash
-cd pyflow-ChIPseq
-mkdir fastqs
-cd fastqs
-## fastq-dump only convert the sra files to fastq to the current folderr
+snakemake -n --use-conda
 ```
 
-make a shell script:
-`download.sh`
-
-download the sqlite database from http://dl.dropbox.com/u/51653511/SRAmetadb.sqlite.gz and unzip it. place it in the `scripts` folder.
-
-UPDATE (2018-04-28). You may want to upgrade the `sradb` or download the database here https://github.com/seandavi/SRAdb/blob/master/README.md#raw-database-downloads
-
-see issue https://github.com/seandavi/SRAdb/issues/10
-
-```bash
-# /bin/bash
-set -euo pipefail
-
-## you will need to change the ascp command to get the right path
-Rscript ../scripts/sraDownload.R -a 'ascp -QT -l 300m -i ~/.aspera/connect/etc/asperaweb_id_dsa.openssh' -d ../scripts/SRAmetadb.sqlite $1
-```
-
-`chmod u+x download.sh`
-
-```bash
-# inside the pyflow-ChIPseq/fastq folder:
-cat ../SRR.txt | sed '1d' | cut-f2 | sort | uniq > srr_unique.txt
-
-## only have 4 jobs in parallel, good behavior on a cluster
-cat srr_unique.txt | parallel -j 4 ./download.sh {}
-
-# all the sra files will be downloaded in the current fastqs folder.
-```
-
-Now you have all `sra` files downloaded into `fastqs` folder, proceed below:
-
-### convert `sra` to `fastqs` and compress to .gz files
-
-```bash
-
-## you can use a for loop to fastq-dump the downloaded sra files.
-find *sra| parallel -j 4  fastq-dump {}
-
-find *fastq | parallel -j 4  bgzip {}
-
-## save some space
-rm *sra
-
-# go gack to the pyflow-ChIPseq folder
-cd ..
-
-python3 sample2json.py --fastq_dir fastqs/ --meta SRR.txt
-```
-
-A `samples.json` file will be created and some information will be printed out on the screen.
-
-### start the pipeline
-
-```bash
-## dry run
-snakemake -np
-
-## test for one sample
-./pyflow-ChIPseq.sh  07bigwig/SRR2518123.bw
+### Output Directory Structure
 
 ```
-
-if no errors, preceed below.
-
-### Using [DRMAA](https://www.drmaa.org/)
-
-[job control through drmaa](http://drmaa-python.readthedocs.io/en/latest/tutorials.html#controlling-a-job)
-
-DRMAA is only supported on `Shark` (LSF system).
-
-```bash
-module load drmma
-./pyflow-drmaa-ChIPseq.sh
+pyflow-ChIPseq/
+├── 00log/              # All log files
+├── 01seq/              # Merged FASTQ files
+├── 02fqc/              # FastQC reports
+├── 03aln/              # Aligned BAM files
+├── 04aln_downsample/   # Downsampled BAMs
+├── 05phantompeakqual/  # ChIP quality metrics
+├── 06bigwig_inputSubtract/  # Input-subtracted bigWigs
+├── 07bigwig/           # RPKM-normalized bigWigs
+├── 08peak_macs3/       # Narrow peaks
+├── 09peak_macs3/       # Broad peaks
+├── 10multiQC/          # Quality summary (START HERE!)
+└── 11superEnhancer/    # Super-enhancer calls (optional)
 ```
 
-Using `drmaa` can `control + c` to stop the current run.
+**Pro tip**: Start by reviewing `10multiQC/multiQC_log.html` for a comprehensive quality overview!
 
-Dependent jobs are submitted one by one, if some jobs failed, the pipeline will stop. Good for initital testing.
+---
 
-### submit all jobs to the cluster
+## 📚 Documentation
 
-```bash
-./pyflow-ChIPseq.sh
-```
+| Document | Description |
+|----------|-------------|
+| **[QUICKSTART.md](QUICKSTART.md)** | 5-minute tutorial with example data |
+| **[INSTALL.md](INSTALL.md)** | Complete installation guide |
+| **[MODERNIZATION.md](MODERNIZATION.md)** | What's new in 2025 version |
+| **[CLAUDE.md](CLAUDE.md)** | Repository architecture |
+| **[README_original.md](README_original.md)** | Historical documentation |
 
-All jobs will be submitted to the cluster on queue.  This is useful if you know your jobs will succeed for most of them and the jobs are on queue to gain priority.
+---
 
-## process the custom data produced from the sequencing core.
+## 📖 Citation
 
-Different People have different naming conventions, to accomondate this situation, I require them to give me a `meta.txt` tab delimited file to have the sample information.
+### Pipeline Publication
 
-The `sample2json.py` script assumes that the fastq_name in the `meta.txt` file exist in the fastq files. 
-`factor` from the same `sample_name` will be made into one group.
-
-set the `control` in the `config.ymal` file, which you are going to use for peak calling. e.g. Input, IgG
-
-
-```bash
-cd pyflow-ChIPseq
-cat meta.txt
-
-sample_name fastq_name  factor  reads
-LKR10   Input_LKR10_1.fq.gz Input   R1
-LKR10   Input_LKR10_2.fq.gz Input   R2
-V6_5    Input_V6_5_1.fq.gz  Input   R1
-V6_5    Input_V6_5_2.fq.gz  Input   R2
-LKR10   Mll4_LKR10_1.fq.gz  Mll4    R1
-LKR10   Mll4_LKR10_2.fq.gz  Mll4    R2
-LKR10   Per2_A_LKR10_1.fq.gz    Per2A   R1
-LKR10   Per2_A_LKR10_2.fq.gz    Per2A   R2
-LKR10   Per2_B_LKR10_1.fq.gz    Per2B   R1
-LKR10   Per2_B_LKR10_2.fq.gz    Per2B   R2
-V6_5    Per2_B_V6_5_1.fq.gz Per2    R1
-V6_5    Per2_B_V6_5_2.fq.gz Per2    R2
-
-## make a samples.json file
-python3 sample2json.py --fastq_dir dir/to/fastqs/ --meta meta.txt
-```
-
-check the example `samples.json` file in the repo to have an idea how the file format look like.
-
-Now, the same as the steps as processing the `sra` files
-
-```bash
-# dry run
-pyflow-ChIPseq.sh  -np
-```
-
-
-### Extra notes on file names
-If one sets up a lab, it is necessary to have consistent file naming across all the projects. `TCGA`project is a great example for us to follow. A [barcode system](https://wiki.nci.nih.gov/display/TCGA/TCGA+barcode) can make your life a lot easier for downstream analysis.
-
-![](./TCGA_barcode.jpg)
-
-Similarily, for a ChIP-seq project, it is important to have consistent naming.
-In Dr.Kunal Rai'lab. We adopted a barcoding system similar to TCGA:
-
-e.g.
-`TCGA-SKCM-M028-11-P008-A-NC-CJT-T`
-
-`TCGA` is the big project name;
-`SKCM` is the tumor name;
-`M028` is the sample name (this should be an unique identifier);
-`11` is the sequencing tag;
-we use `11` to denote first time IP, first time sequencing, if the reads number is too few, but the IP worked, we just need to resequence the same library. for the resequencing sample, we will use `12` for this. if the total reads number is still too low, `13` could be used. `21` will be second time IP and first time sequencing. etc.
-`P008` is the plate number of that IP experiment, we now use 96-well plate for ChIP-seq, we use this id to track which plate the samples are from.
-`A` is the chromatin mark name or transcription factor name. we have a naming map for this:
-`A` is H3K4me1, `B` is H3K9me3 and `G` is for Input etc.
-
-The other barcode areas can be used for other information. `NC` means the samples were sequenced in north campus.
-
-It saves me a lot in the downstream processing. The barcode can be captured by a universal regular expression from the fastq.gz files.
-
-A real experiment comes a fastq.gz name like this
-
-`TCGA-SKCM-M028-R1-P008-C-NC-CJT-T_TTAGGC_L001_R1_006.fastq.gz`
-
-multiplexing is very common nowadays, the sequencing reads for the same sample may come from different lanes, after de-multiplexing, multiple files for the same sample will be put in the same folder. If you name your files in a consistent way, you can easily merge all the fastq files before mapping. (for DNA sequencing, it is recommended to map the fastq files independently and then merge the mapped bam files with read-group to identify which lane it is from).
-
-It also helps for merging the fastq files from two different rounds of sequencing. I know sequencing tag `11` and `12` with the same sample name and chromatin mark name are for the same sample, so I can merge them together programatically.
-
-I also know that `G` is a Input control sample, I can then call peaks, make Input subtracted bigwigs etc using a IP vs Input pattern. (A_vs_G, B_vs_G). Same idea can be used for `tumor` and `control` for whole genome sequencing when calling mutations and copynumber.
-
-Many other people out of our lab let me process their data, I can not enforce naming of the files before they carry out the experiments. That's why I require them to give me a `meta.txt` file instead.
-
-### job control
-
-To kill all of your pending jobs you can use the command:
-
-```bash
-bkill `bjobs -u krai |grep PEND |cut -f1 -d" "`
-```
-
-other useful commands:
+If you use this pipeline, please cite:
 
 ```
-bjobs -pl
-Display detailed information of all pending jobs of the invoker.
-
-bjobs -ps
-Display only pending and suspended jobs.
-
-bjobs -u all -a
-Display all jobs of all users.
-
-bjobs -d -q short -m apple -u mtang1
-Display all the recently finished jobs submitted by john to the
-queue short, and executed on the host apple.
+Terranova, C., Tang, M., Orouji, E., Maitituoheti, M., Raman, A., Amin, S., et al.
+An Integrated Platform for Genome-wide Mapping of Chromatin States Using
+High-throughput ChIP-sequencing in Tumor Tissues.
+J. Vis. Exp. (134), e56972, doi:10.3791/56972 (2018).
 ```
 
-### rerun some of the jobs
+**DOI**: [![DOI](https://zenodo.org/badge/89386223.svg)](https://zenodo.org/badge/latestdoi/89386223)
 
-```bash
+### Key Tools
 
-# specify the name of the rule, all files that associated with that rule will be rerun. e.g. rerun macs2 calling peaks rule,
-./pyflow-ChIPseq -R call_peaks_macs2
+This pipeline builds on excellent open-source tools:
+- **Snakemake**: [Mölder et al., 2021](https://doi.org/10.12688/f1000research.29032.2)
+- **MACS3**: [Zhang et al., 2008](https://doi.org/10.1186/gb-2008-9-9-r137)
+- **deepTools**: [Ramírez et al., 2016](https://doi.org/10.1093/nar/gkw257)
+- **BWA**: [Li & Durbin, 2009](https://doi.org/10.1093/bioinformatics/btp324)
+- **samtools**: [Danecek et al., 2021](https://doi.org/10.1093/gigascience/giab008)
 
-## rerun one sample, just specify the name of the target file
+---
 
-./pyflow-ChIPseq -R 02aln/SRR3144652.sorted.bam
+## 💡 Key Improvements (2025 Modernization)
 
-# check snakemake -f, -R, --until options
-./pyflow-ChIPseq -f call_peaks_macs2
-```
+This branch (`modernize-2025`) represents a complete overhaul:
 
-### checking results after run finish
+### Python 3 Migration
+- ✅ MACS3 instead of MACS1/MACS2
+- ✅ ROSE2 (Python 3 port) for super-enhancers
+- ✅ All scripts Python 3 compatible
 
-```bash
+### Modern Tooling
+- ✅ Snakemake v7+ with profiles
+- ✅ Conda environments for reproducibility
+- ✅ Updated tools: samtools 1.19+, deepTools 3.5+
 
-snakemake --summary | sort -k1,1 | less -S
+### Better UX
+- ✅ Simplified configuration
+- ✅ Better error messages
+- ✅ Comprehensive documentation
+- ✅ Split alignment steps for easier debugging
 
-# or detailed summary will give you the commands used to generated the output and what input is used
-snakemake --detailed-summary | sort -k1,1 > snakemake_run_summary.txt
-```
+### Performance
+- ✅ Parallel execution optimized
+- ✅ Smart temp file cleanup
+- ✅ Configurable threading
 
+See **[MODERNIZATION.md](MODERNIZATION.md)** for complete details.
 
-### clean the folders
+---
 
-I use echo to see what will be removed first, then you can remove all later.
+## 🛠️ Troubleshooting
 
-```
-find . -maxdepth 1 -type d -name "[0-9]*" | xargs echo rm -rf
-```
+### Common Issues
 
+| Problem | Solution |
+|---------|----------|
+| `samples.json not found` | Run `python sample2json.py /path/to/fastq meta.txt` |
+| Reference genome not indexed | Run `bwa index genome.fa` |
+| Memory errors | Increase `mem_mb` in Snakefile resources |
+| Conda is slow | Use `--conda-frontend mamba` |
+| ROSE2 fails | Check genome name is uppercase: HG38, MM10 |
 
-### Snakemake does not trigger re-runs if I add additional input files. What can I do?
+See **[INSTALL.md](INSTALL.md)** for detailed troubleshooting.
 
-Snakemake has a kind of “lazy” policy about added input files if their modification date is older than that of the output files. One reason is that information what to do cannot be inferred just from the input and output files. You need additional information about the last run to be stored. Since behaviour would be inconsistent between cases where that information is available and where it is not, this functionality has been encoded as an extra switch. To trigger updates for jobs with changed input files, you can use the command line argument –list-input-changes in the following way:
+---
 
-```bash
-snakemake -n -R `snakemake --list-input-changes`
+## 🤝 Support
 
-```
+- **Issues**: [GitHub Issues](https://github.com/crazyhottommy/pyflow-ChIPseq/issues)
+- **Snakemake docs**: https://snakemake.readthedocs.io/
+- **Email**: Contact the author through GitHub
 
-### How do I trigger re-runs for rules with updated code or parameters?
+---
 
-```bash
-snakemake -n -R `snakemake --list-params-changes`
-```
+## 📋 Requirements
 
-and
+- **Operating System**: Linux or macOS
+- **Memory**: 32 GB RAM minimum (for alignment)
+- **Storage**: ~50-100 GB per sample
+- **CPU**: Multi-core recommended (8+ cores)
 
-```bash
-snakemake -n -R `snakemake --list-code-changes`
-```
+**Software** (auto-installed via conda):
+- Python ≥ 3.8
+- Snakemake ≥ 7.0
+- BWA, samtools, MACS3, deepTools, etc.
 
+---
 
-### TO DO list
+## 🗺️ Roadmap
 
-- [ ] provide an output directory. Now,  everything will be output in the current pyflow-ChIPseq directory in a structured fasion. : `00log`, `01seq`, `02fqc`, `03aln` etc
-- [x] work for paired-end ChIPseq .
-- [ ] put everything in docker.
+Future improvements:
+- [ ] Support for additional peak callers (HOMER, SICER)
+- [ ] Automatic peak quality filtering
+- [ ] Differential binding analysis (DiffBind)
+- [ ] Motif enrichment integration
+- [ ] Docker/Singularity containers
+- [ ] Cloud execution (AWS, Google Cloud)
+
+---
+
+## 📜 License
+
+This project is open source. See repository for license details.
+
+---
+
+## 🙏 Acknowledgments
+
+Originally developed by Ming Tang ([@crazyhottommy](https://github.com/crazyhottommy)) at MD Anderson Cancer Center.
+
+Modernized in 2025 with contributions from the bioinformatics community.
+
+Special thanks to the developers of Snakemake and all the tools integrated in this pipeline.
+
+---
+
+**Ready to analyze your ChIP-seq data?** → Start with **[QUICKSTART.md](QUICKSTART.md)** 🚀

@@ -1,0 +1,40 @@
+# Snakemake SLURM Profile Configuration
+# Modern replacement for cluster.json
+
+# Number of jobs to submit simultaneously
+jobs: 100
+
+# Use conda environments
+use-conda: True
+
+# Conda frontend (mamba is faster than conda)
+conda-frontend: "mamba"
+
+# Rerun incomplete jobs
+rerun-incomplete: True
+
+# Print shell commands
+printshellcmds: True
+
+# Keep going with independent jobs if one fails
+keep-going: True
+
+# Latency wait (seconds) for filesystem sync
+latency-wait: 60
+
+# Cluster submission command
+# This tells Snakemake how to submit jobs to SLURM
+cluster: "sbatch --parsable --mem={resources.mem_mb} --time={resources.runtime} --cpus-per-task={threads} --job-name={rule}_{wildcards} --output=logs/slurm/{rule}_{wildcards}_%j.out --error=logs/slurm/{rule}_{wildcards}_%j.err"
+
+# Default resources for rules that don't specify them
+default-resources:
+  - mem_mb=8000
+  - runtime=120
+  - tmpdir="/tmp"
+
+# Restart times for failed jobs (in case of cluster issues)
+restart-times: 0
+
+# Maximum number of jobs running simultaneously
+max-jobs-per-second: 10
+max-status-checks-per-second: 10

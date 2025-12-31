@@ -1,0 +1,86 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Snakemake
+.snakemake/
+*.snakemake_timestamp
+
+# Output directories (test runs)
+00log/
+01seq/
+02fqc/
+03aln/
+04aln_downsample/
+05phantompeakqual/
+06bigwig_inputSubtract/
+07bigwig/
+08peak_macs3/
+09peak_macs3/
+10multiQC/
+11superEnhancer/
+12ChromHMM/
+
+# Data directories
+data/
+fastqs/
+logs/
+
+# SLURM logs
+slurm-*.out
+*.log
+
+# R
+.Rhistory
+.RData
+.Rproj.user
+
+# Downloaded scripts
+run_spp.R
+spp.tar.gz
+spp-master/
+
+# Temp files
+*.tmp
+*.bam.tmp*
+*.sai
+*.tagAlign*
+*_phantom.txt
+*.pdf
+
+# Mac
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*~
+*.swp
+*.swo
+
+# Benchmarks
+.benchmarks/
+
+# Sample files (keep templates only)
+samples.json
+
+# BAM indices
+*.bai
+
+# Large genome files (users should provide their own)
+*.fa
+*.fa.fai
+*.fa.amb
+*.fa.ann
+*.fa.bwt
+*.fa.pac
+*.fa.sa
+
+# SRA files
+*.sra

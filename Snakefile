@@ -1,18 +1,19 @@
-shell.prefix("set -eo pipefail; echo BEGIN at $(date); ")
-shell.suffix("; exitstat=$?; echo END at $(date); echo exit status was $exitstat; exit $exitstat")
+"""
+pyflow-ChIPseq: A Snakemake pipeline for ChIP-seq analysis
+Modernized version (2025) with Python 3, MACS3, and updated tools
+"""
+
+import json
+import csv
+import os
 
 configfile: "config.yaml"
 
+# localrules will run locally rather than submitting to cluster
 localrules: all
-# localrules will let the rule run locally rather than submitting to cluster
-# computing nodes, this is for very small jobs
 
-# load cluster config file
-CLUSTER = json.load(open(config['CLUSTER_JSON']))
+# Load sample configuration
 FILES = json.load(open(config['SAMPLES_JSON']))
-
-import csv
-import os
 
 SAMPLES = sorted(FILES.keys())
 
@@ -45,9 +46,8 @@ for case in CASES:
     sample = "_".join(case.split("_")[0:-1])
     control = sample + "_" + CONTROL
     if control in CONTROLS:
-        ALL_PEAKS.append("08peak_macs1/{}_vs_{}_macs1_peaks.bed".format(case, control))
-        ALL_PEAKS.append("08peak_macs1/{}_vs_{}_macs1_nomodel_peaks.bed".format(case, control))
-        ALL_PEAKS.append("09peak_macs2/{}_vs_{}_macs2_peaks.xls".format(case, control))
+        ALL_PEAKS.append("08peak_macs3/{}_vs_{}_narrow_peaks.narrowPeak".format(case, control))
+        ALL_PEAKS.append("09peak_macs3/{}_vs_{}_broad_peaks.broadPeak".format(case, control))
         ALL_inputSubtract_BIGWIG.append("06bigwig_inputSubtract/{}_subtract_{}.bw".format(case, control))
         ALL_SUPER.append("11superEnhancer/{}_vs_{}-super/".format(case, control))
 
@@ -57,11 +57,14 @@ ALL_DOWNSAMPLE_BAM = expand("04aln_downsample/{sample}-downsample.sorted.bam", s
 ALL_INDEX = expand("03aln/{sample}.sorted.bam.bai", sample = ALL_SAMPLES)
 ALL_DOWNSAMPLE_INDEX = expand("04aln_downsample/{sample}-downsample.sorted.bam.bai", sample = ALL_SAMPLES)
 ALL_FLAGSTAT = expand("03aln/{sample}.sorted.bam.flagstat", sample = ALL_SAMPLES)
-ALL_PHATOM = expand("05phantompeakqual/{sample}_phantom.txt", sample = ALL_SAMPLES)
 ALL_BIGWIG = expand("07bigwig/{sample}.bw", sample = ALL_SAMPLES)
 ALL_QC = ["10multiQC/multiQC_log.html"]
 
-
+# Conditional outputs based on config
+if config.get("run_phantompeakqual", True):
+    ALL_PHATOM = expand("05phantompeakqual/{sample}_phantom.txt", sample = ALL_SAMPLES)
+else:
+    ALL_PHATOM = []
 
 TARGETS = []
 TARGETS.extend(ALL_BAM)
@@ -125,26 +128,45 @@ if config["paired_end"]:
             r1 = get_R1_files,
             r2 = get_R2_files
         output:
-            temp("01seq/{sample}_R1.fastq.gz"), temp("01seq/{sample}_R2.fastq.gz")
+            temp("01seq/{sample}_R1.fastq.gz"),
+            temp("01seq/{sample}_R2.fastq.gz")
         log: "00log/{sample}_merge_fastq.log"
         params:
             jobname = "{sample}"
         threads: 1
-        message: "merging fastqs {input}: {threads} threads"
-        shell:
-            """
-            gunzip -c {input.r1} | gzip > {output[0]} 2> {log}
-            gunzip -c {input.r2} | gzip > {output[1]} 2>> {log}
-            """
+        resources:
+            mem_mb=4000,
+            runtime=120
+        message: "processing fastqs for {wildcards.sample}"
+        run:
+            # R1 handling: symlink if single file, merge if multiple
+            if len(input.r1) == 1:
+                shell("ln -sf $(realpath {input.r1}) {output[0]} 2> {log}")
+            else:
+                shell("gunzip -c {input.r1} | gzip > {output[0]} 2> {log}")
+
+            # R2 handling: symlink if single file, merge if multiple
+            if len(input.r2) == 1:
+                shell("ln -sf $(realpath {input.r2}) {output[1]} 2>> {log}")
+            else:
+                shell("gunzip -c {input.r2} | gzip > {output[1]} 2>> {log}")
 else:
     rule merge_fastqs:
         input: get_input_files
         output: temp("01seq/{sample}.fastq.gz")
         log: "00log/{sample}_unzip"
-        threads: CLUSTER["merge_fastqs"]["n"]
+        threads: 1
         params: jobname = "{sample}"
-        message: "merging fastqs gunzip -c {input} > {output}"
-        shell: "gunzip -c {input} | gzip > {output} 2> {log}"
+        resources:
+            mem_mb=4000,
+            runtime=120
+        message: "processing fastqs for {wildcards.sample}"
+        run:
+            # Symlink if single file, merge if multiple
+            if len(input) == 1:
+                shell("ln -sf $(realpath {input}) {output} 2> {log}")
+            else:
+                shell("gunzip -c {input} | gzip > {output} 2> {log}")
 
 
 
@@ -156,11 +178,13 @@ if config["paired_end"]:
         log:    "00log/{sample}_fastqc"
         threads: 1
         params : jobname = "{sample}"
+        conda: "envs/qc.yaml"
+        resources:
+            mem_mb=4000,
+            runtime=60
         message: "fastqc {input}: {threads} threads"
         shell:
             """
-            # fastqc works fine on .gz file as well
-            module load fastqc
             fastqc -o 02fqc -f fastq --noextract {input[0]} {input[1]} 2> {log}
             """
 else:
@@ -168,12 +192,15 @@ else:
         input:  "01seq/{sample}.fastq.gz"
         output: "02fqc/{sample}_fastqc.zip", "02fqc/{sample}_fastqc.html"
         log:    "00log/{sample}_fastqc"
-        threads: CLUSTER["fastqc"]["n"]
+        threads: 1
         params : jobname = "{sample}"
+        conda: "envs/qc.yaml"
+        resources:
+            mem_mb=4000,
+            runtime=60
         message: "fastqc {input}: {threads}"
         shell:
             """
-            module load fastqc
             fastqc -o 02fqc -f fastq --noextract {input} 2> {log}
             """
 
@@ -199,252 +226,446 @@ else:
 ## Now: -R "@RG\\tID:1\\tLB:LIBRARY\\tPL:illumina\\tSM:sample1\\tPU:AB1234"
 
 
+## ============================================================================
+## PAIRED-END ALIGNMENT (Split into 3 steps for easier debugging)
+## ============================================================================
+
 if config["from_fastq"] and config["paired_end"]:
-    rule align:
-        input:  r1 = "01seq/{sample}_R1.fastq.gz",
-                r2 = "01seq/{sample}_R2.fastq.gz"
-        output: "03aln/{sample}.sorted.bam", "03aln/{sample}.sorted.bam.bai", "00log/{sample}.align"
-        threads: CLUSTER["align"]["n"]
+    # Step 1: BWA alignment only (produces unsorted BAM)
+    rule bwa_align_pe:
+        input:
+            r1 = "01seq/{sample}_R1.fastq.gz",
+            r2 = "01seq/{sample}_R2.fastq.gz"
+        output:
+            bam = temp("03aln/{sample}.unsorted.bam")
+        threads: config.get("max_threads_align", 8)
         params:
-                jobname = "{sample}",
-                ## add read group for bwa mem mapping, change accordingly if you know PL:ILLUMINA, LB:library1 PI:200 etc...
-                rg = "@RG\\tID:{sample}\\tSM:{sample}"
-        message: "aligning bwa {input}: {threads} threads"
-        log:
-            bwa = "00log/{sample}.align",
-            markdup = "00log/{sample}.markdup"
+            jobname = "{sample}",
+            rg = "@RG\\tID:{sample}\\tSM:{sample}\\tPL:ILLUMINA"
+        conda: "envs/alignment.yaml"
+        resources:
+            mem_mb=16000,
+            runtime=360
+        log: "00log/{sample}.bwa_align"
+        message: "BWA alignment for {wildcards.sample}: {threads} threads"
         run:
             if config["long_reads"]:
+                # Long reads: use bwa mem
                 shell(
                     r"""
-                    bwa mem -t 5 -M -v 1 -R '{params.rg}' {config[ref_fa]} {input[0]} {input[1]} 2> {log.bwa} \
-                    | samblaster 2> {log.markdup} \
-                    | samtools view -Sb -F 4 - \
-                    | samtools sort -m 2G -@ 5 -T {output[0]}.tmp -o {output[0]}
-                    samtools index {output[0]}
+                    bwa mem -t {threads} -M -v 1 -R '{params.rg}' {config[ref_fa]} \
+                        {input.r1} {input.r2} 2> {log} \
+                        | samtools view -@ {threads} -b -o {output.bam}
                     """)
-            ## short reads < 70bp
-            ## Probably one of the most important is how many mismatches you will allow between a read and a potential mapping location for that location to be considered a match.
-            ## The default is 4% of the read length, but you can set this to be either another proportion of the read length, or a fixed integer
             else:
+                # Short reads: use bwa aln + sampe
                 shell(
                     r"""
-                    bwa aln -t 5 {config[ref_fa]} {input[0]} 2> {log.bwa} > 0aln/{wildcards.sample}_R1.sai
-                    bwa aln -t 5 {config[ref_fa]} {input[1]} 2>> {log.bwa} > 01aln/{wildcards.sample}_R2.sai
-                    bwa sampe -r '{params.rg}' {config[ref_fa]} 01aln/{wildcards.sample}_R1.sai 01aln/{wildcards.sample}_R2.sai {input[0]} {input[1]} 2>> {log.bwa} \
-                    | samblaster 2> {log.markdup} \
-                    | samtools view -Sb -F 4 - \
-                    | samtools sort -m 2G -@ 5 -T {output[0]}.tmp -o {output[0]}
+                    mkdir -p 01aln
+                    bwa aln -t {threads} {config[ref_fa]} {input.r1} 2> {log} > 01aln/{wildcards.sample}_R1.sai
+                    bwa aln -t {threads} {config[ref_fa]} {input.r2} 2>> {log} > 01aln/{wildcards.sample}_R2.sai
+                    bwa sampe -r '{params.rg}' {config[ref_fa]} \
+                        01aln/{wildcards.sample}_R1.sai 01aln/{wildcards.sample}_R2.sai \
+                        {input.r1} {input.r2} 2>> {log} \
+                        | samtools view -@ {threads} -b -o {output.bam}
                     rm 01aln/{wildcards.sample}_R1.sai 01aln/{wildcards.sample}_R2.sai
-                    samtools index {output[0]}
                     """)
 
+    # Step 2: Remove duplicates, filter, and sort (PE)
+    rule process_bam_pe:
+        input:
+            bam = "03aln/{sample}.unsorted.bam"
+        output:
+            bam = "03aln/{sample}.sorted.bam"
+        threads: config.get("max_threads_align", 8)
+        params:
+            jobname = "{sample}"
+        conda: "envs/alignment.yaml"
+        resources:
+            mem_mb=16000,
+            runtime=360
+        log:
+            markdup = "00log/{sample}.markdup",
+            sort = "00log/{sample}.sort"
+        message: "Processing PE BAM for {wildcards.sample}: remove duplicates, filter, sort"
+        shell:
+            r"""
+            samtools view -h {input.bam} \
+                | samblaster -r 2> {log.markdup} \
+                | samtools view -@ {threads} -b -F 4 - \
+                | samtools sort -m 2G -@ {threads} -T {output.bam}.tmp -o {output.bam} 2> {log.sort}
+            """
+
+    # Step 3: Index BAM (PE)
+    rule index_bam_pe:
+        input:
+            bam = "03aln/{sample}.sorted.bam"
+        output:
+            bai = "03aln/{sample}.sorted.bam.bai"
+        threads: 2
+        params:
+            jobname = "{sample}"
+        conda: "envs/alignment.yaml"
+        resources:
+            mem_mb=4000,
+            runtime=60
+        log: "00log/{sample}.index"
+        message: "Indexing BAM for {wildcards.sample}"
+        shell:
+            """
+            samtools index -@ {threads} {input.bam} 2> {log}
+            """
+
+
+## ============================================================================
+## SINGLE-END ALIGNMENT (Split into 3 steps for easier debugging)
+## ============================================================================
 
 if config["from_fastq"] and not config["paired_end"]:
-    rule align:
-        input:  "01seq/{sample}.fastq.gz"
-        output: "03aln/{sample}.sorted.bam", "03aln/{sample}.sorted.bam.bai", "00log/{sample}.align"
-        threads: CLUSTER["align"]["n"]
+    # Step 1: BWA alignment only (produces unsorted BAM)
+    rule bwa_align_se:
+        input:
+            fastq = "01seq/{sample}.fastq.gz"
+        output:
+            bam = temp("03aln/{sample}.unsorted.bam")
+        threads: config.get("max_threads_align", 8)
         params:
-                jobname = "{sample}",
-                ## add read group for bwa mem mapping, change accordingly if you know PL:ILLUMINA, LB:library1 PI:200 etc...
-                rg = "@RG\\tID:{sample}\\tSM:{sample}"
-        message: "aligning bwa {input}: {threads} threads"
-        log:
-            bwa = "00log/{sample}.align",
-            markdup = "00log/{sample}.markdup"
+            jobname = "{sample}",
+            rg = "@RG\\tID:{sample}\\tSM:{sample}\\tPL:ILLUMINA"
+        conda: "envs/alignment.yaml"
+        resources:
+            mem_mb=16000,
+            runtime=360
+        log: "00log/{sample}.bwa_align"
+        message: "BWA alignment for {wildcards.sample}: {threads} threads"
         run:
             if config["long_reads"]:
+                # Long reads: use bwa mem
                 shell(
                     r"""
-                    bwa mem -t 5 -M -v 1 -R '{params.rg}' {config[ref_fa]} {input} 2> {log.bwa} \
-                    | samblaster -r 2> {log.markdup} \
-                    | samtools view -Sb -F 4 - \
-                    | samtools sort -m 2G -@ 5 -T {output[0]}.tmp -o {output[0]}
-                    samtools index {output[0]}
+                    bwa mem -t {threads} -M -v 1 -R '{params.rg}' {config[ref_fa]} \
+                        {input.fastq} 2> {log} \
+                        | samtools view -@ {threads} -b -o {output.bam}
                     """)
-            ## short reads < 70bp
             else:
+                # Short reads: use bwa aln + samse
                 shell(
                     r"""
-                    bwa aln -t 5 {config[ref_fa]} {input} 2> {log.bwa} > 01aln/{wildcards.sample}.sai
-                    bwa samse -r '{params.rg}' {config[ref_fa]} 01aln/{wildcards.sample}.sai {input} 2>> {log.bwa} \
-                    | samblaster -r 2> {log.markdup} \
-                    | samtools view -Sb -F 4 - \
-                    | samtools sort -m 2G -@ 5 -T {output[0]}.tmp -o {output[0]}
+                    mkdir -p 01aln
+                    bwa aln -t {threads} {config[ref_fa]} {input.fastq} 2> {log} > 01aln/{wildcards.sample}.sai
+                    bwa samse -r '{params.rg}' {config[ref_fa]} \
+                        01aln/{wildcards.sample}.sai {input.fastq} 2>> {log} \
+                        | samtools view -@ {threads} -b -o {output.bam}
                     rm 01aln/{wildcards.sample}.sai
-                    samtools index {output[0]}
                     """)
 
-# check number of reads mapped by samtools flagstat, the output will be used for downsampling
+    # Step 2: Remove duplicates, filter, and sort (SE)
+    rule process_bam_se:
+        input:
+            bam = "03aln/{sample}.unsorted.bam"
+        output:
+            bam = "03aln/{sample}.sorted.bam"
+        threads: config.get("max_threads_align", 8)
+        params:
+            jobname = "{sample}"
+        conda: "envs/alignment.yaml"
+        resources:
+            mem_mb=16000,
+            runtime=360
+        log:
+            markdup = "00log/{sample}.markdup",
+            sort = "00log/{sample}.sort"
+        message: "Processing SE BAM for {wildcards.sample}: remove duplicates, filter, sort"
+        shell:
+            r"""
+            samtools view -h {input.bam} \
+                | samblaster -r --ignoreUnmated 2> {log.markdup} \
+                | samtools view -@ {threads} -b -F 4 - \
+                | samtools sort -m 2G -@ {threads} -T {output.bam}.tmp -o {output.bam} 2> {log.sort}
+            """
+
+    # Step 3: Index BAM (SE)
+    rule index_bam_se:
+        input:
+            bam = "03aln/{sample}.sorted.bam"
+        output:
+            bai = "03aln/{sample}.sorted.bam.bai"
+        threads: 2
+        params:
+            jobname = "{sample}"
+        conda: "envs/alignment.yaml"
+        resources:
+            mem_mb=4000,
+            runtime=60
+        log: "00log/{sample}.index"
+        message: "Indexing BAM for {wildcards.sample}"
+        shell:
+            """
+            samtools index -@ {threads} {input.bam} 2> {log}
+            """
+
+## ============================================================================
+## SHARED RULES (for both PE and SE)
+## ============================================================================
+
+# Check number of reads mapped by samtools flagstat, the output will be used for downsampling
 rule flagstat_bam:
     input:  "03aln/{sample}.sorted.bam"
     output: "03aln/{sample}.sorted.bam.flagstat"
     log:    "00log/{sample}.flagstat_bam"
     threads: 1
     params: jobname = "{sample}"
+    conda: "envs/alignment.yaml"
+    resources:
+        mem_mb=2000,
+        runtime=30
     message: "flagstat_bam {input}: {threads} threads"
     shell:
         """
-        samtools flagstat {input} > {output} 2> {log}
+        samtools flagstat --threads {threads} {input} > {output} 2> {log}
         """
 
 rule phantom_peak_qual:
-    input: "03aln/{sample}.sorted.bam", "03aln/{sample}.sorted.bam.bai"
+    input:
+        bam = "03aln/{sample}.sorted.bam",
+        bai = "03aln/{sample}.sorted.bam.bai"
     output: "05phantompeakqual/{sample}_phantom.txt"
     log: "00log/{sample}_phantompeakqual.log"
-    threads: 4
-    params: jobname = "{sample}",
+    threads: config.get("max_threads_other", 4)
+    params: jobname = "{sample}"
+    conda: "envs/phantompeakqualtools.yaml"
+    resources:
+        mem_mb=8000,
+        runtime=120
     message: "phantompeakqual for {input}"
     shell:
         """
-	    source activate root
-        Rscript  {config[phantom_path]} -c={input[0]} -savp -rf -p=4 -odir=05phantompeakqual  -out={output} -tmpdir=05phantompeakqual 2> {log}
+        # Download run_spp.R if not present
+        if [ ! -f run_spp.R ]; then
+            curl -O https://raw.githubusercontent.com/kundajelab/phantompeakqualtools/master/run_spp.R
+        fi
 
+        # Install spp R package from GitHub if not already installed
+        if ! Rscript -e "library(spp)" 2>/dev/null; then
+            echo "Installing spp from GitHub..." 2>> {log}
+            # Download from master branch (most reliable)
+            curl -L -o spp.tar.gz https://github.com/hms-dbmi/spp/archive/master.tar.gz 2>> {log}
+            # Extract and install from source
+            tar -xzf spp.tar.gz 2>> {log}
+            R CMD INSTALL spp-master 2>> {log}
+            rm -rf spp.tar.gz spp-master
+        fi
+
+        # Run phantompeakqualtools
+        Rscript run_spp.R -c={input.bam} -savp -rf -p={threads} -odir=05phantompeakqual -out={output} -tmpdir=05phantompeakqual 2>> {log}
+
+        # Clean up temporary files created by run_spp.R (can be several GB)
+        rm -f 05phantompeakqual/{wildcards.sample}.sorted.bam*[0-9a-f][0-9a-f][0-9a-f]*
+        rm -f 05phantompeakqual/{wildcards.sample}.sorted.tagAlign*[0-9a-f][0-9a-f][0-9a-f]*
         """
 
 rule down_sample:
-    input: "03aln/{sample}.sorted.bam", "03aln/{sample}.sorted.bam.bai", "03aln/{sample}.sorted.bam.flagstat"
-    output: "04aln_downsample/{sample}-downsample.sorted.bam", "04aln_downsample/{sample}-downsample.sorted.bam.bai"
+    input:
+        bam = "03aln/{sample}.sorted.bam",
+        bai = "03aln/{sample}.sorted.bam.bai",
+        flagstat = "03aln/{sample}.sorted.bam.flagstat"
+    output:
+        bam = "04aln_downsample/{sample}-downsample.sorted.bam",
+        bai = "04aln_downsample/{sample}-downsample.sorted.bam.bai"
     log: "00log/{sample}_downsample.log"
-    threads: 5
-    params: jobname = "{sample}",
-            source_dir = os.path.dirname(srcdir("Snakefile"))
+    threads: config.get("max_threads_other", 4)
+    params:
+        jobname = "{sample}"
+    conda: "envs/alignment.yaml"
+    resources:
+        mem_mb=16000,
+        runtime=240
     message: "downsampling for {input}"
     run:
         import re
-        import subprocess
-        with open (input[2], "r") as f:
-            # fifth line contains the number of mapped reads
-            line = f.readlines()[4]
-            match_number = re.match(r'(\d.+) \+.+', line)
+        with open (input.flagstat, "r") as f:
+            # Read line 8 (index 7): primary mapped reads (excludes secondary/supplementary)
+            line = f.readlines()[7]
+            match_number = re.match(r'(\d+) \+', line)
+            if not match_number:
+                raise ValueError(f"Could not parse flagstat line: {line}")
             total_reads = int(match_number.group(1))
         if config["downsample"]:
-            target_reads = config["target_reads"] # 15million reads  by default, set up in the config.yaml file
+            target_reads = config["target_reads"]
             if total_reads > target_reads:
                 down_rate = target_reads/total_reads
             else:
                 down_rate = 1
-            shell("sambamba view -f bam -t 5 --subsampling-seed=3 -s {rate} {inbam} | samtools sort -m 2G -@ 5 -T {outbam}.tmp > {outbam} 2> {log}".format(rate = down_rate, inbam = input[0], outbam = output[0], log = log))
-            shell("samtools index {outbam}".format(outbam = output[0]))
+            shell("sambamba view -f bam -t {threads} --subsampling-seed=3 -s {rate} {inbam} | samtools sort -m 2G -@ {threads} -T {outbam}.tmp -o {outbam} 2> {log}".format(rate = down_rate, inbam = input.bam, outbam = output.bam, log = log, threads = threads))
+            shell("samtools index -@ {threads} {outbam}".format(outbam = output.bam, threads = threads))
         else:
-            shell("ln -s {inbam} {outbam}".format(inbam = params.source_dir + "/" + input[0], outbam = output[0]))
-            shell("ln -s {inbai} {outbai}".format(inbai = params.source_dir + "/" + input[1], outbai = output[1]))
+            shell("ln -sf $(pwd)/{inbam} {outbam}".format(inbam = input.bam, outbam = output.bam))
+            shell("ln -sf $(pwd)/{inbai} {outbai}".format(inbai = input.bai, outbai = output.bai))
 
 rule make_inputSubtract_bigwigs:
-    input : "04aln_downsample/{control}-downsample.sorted.bam", "04aln_downsample/{case}-downsample.sorted.bam", "04aln_downsample/{control}-downsample.sorted.bam.bai", "04aln_downsample/{case}-downsample.sorted.bam.bai"
-    output:  "06bigwig_inputSubtract/{case}_subtract_{control}.bw"
+    input:
+        control_bam = "04aln_downsample/{control}-downsample.sorted.bam",
+        case_bam = "04aln_downsample/{case}-downsample.sorted.bam",
+        control_bai = "04aln_downsample/{control}-downsample.sorted.bam.bai",
+        case_bai = "04aln_downsample/{case}-downsample.sorted.bam.bai"
+    output: "06bigwig_inputSubtract/{case}_subtract_{control}.bw"
     log: "00log/{case}_subtract_{control}.makebw"
-    threads: 5
+    threads: config.get("max_threads_other", 4)
     params: jobname = "{case}_{control}"
+    conda: "envs/bigwig.yaml"
+    resources:
+        mem_mb=16000,
+        runtime=240
     message: "making input subtracted bigwig for {input}"
     shell:
         """
-        bamCompare --bamfile1 {input[1]} --bamfile2 {input[0]} --normalizeUsingRPKM --ratio subtract --binSize 30 --smoothLength 300 -p 5  --extendReads 200 -o {output} 2> {log}
-
+        bamCompare --bamfile1 {input.case_bam} --bamfile2 {input.control_bam} \
+            --normalizeUsing RPKM --scaleFactorsMethod None --operation subtract --binSize 30 \
+            --smoothLength 300 --numberOfProcessors {threads} \
+            --extendReads 200 -o {output} 2> {log}
         """
 
 rule make_bigwigs:
-    input : "04aln_downsample/{sample}-downsample.sorted.bam", "04aln_downsample/{sample}-downsample.sorted.bam.bai"
+    input:
+        bam = "04aln_downsample/{sample}-downsample.sorted.bam",
+        bai = "04aln_downsample/{sample}-downsample.sorted.bam.bai"
     output: "07bigwig/{sample}.bw"
     log: "00log/{sample}.makebw"
-    threads: 5
+    threads: config.get("max_threads_other", 4)
     params: jobname = "{sample}"
+    conda: "envs/bigwig.yaml"
+    resources:
+        mem_mb=16000,
+        runtime=240
     message: "making bigwig for {input}"
     shell:
         """
-        bamCoverage -b {input[0]} --normalizeUsing RPKM --binSize 30 --smoothLength 300 -p 5 --extendReads 200 -o {output} 2> {log}
+        bamCoverage -b {input.bam} --normalizeUsing RPKM --binSize 30 \
+            --smoothLength 300 --numberOfProcessors {threads} \
+            --extendReads 200 -o {output} 2> {log}
         """
 
-rule call_peaks_macs1:
-    input: control = "04aln_downsample/{control}-downsample.sorted.bam", case="04aln_downsample/{case}-downsample.sorted.bam"
-    output: "08peak_macs1/{case}_vs_{control}_macs1_peaks.bed", "08peak_macs1/{case}_vs_{control}_macs1_nomodel_peaks.bed"
-    log:
-        macs1 = "00log/{case}_vs_{control}_call_peaks_macs1.log",
-        macs1_nomodel = "00log/{case}_vs_{control}_call_peaks_macs1_nomodel.log"
+rule call_peaks_macs3_narrow:
+    input:
+        control = "04aln_downsample/{control}-downsample.sorted.bam",
+        case = "04aln_downsample/{case}-downsample.sorted.bam"
+    output:
+        peaks = "08peak_macs3/{case}_vs_{control}_narrow_peaks.narrowPeak",
+        xls = "08peak_macs3/{case}_vs_{control}_narrow_peaks.xls"
+    log: "00log/{case}_vs_{control}_call_peaks_macs3_narrow.log"
+    threads: 1
     params:
-        name1 = "{case}_vs_{control}_macs1",
-        name2 = "{case}_vs_{control}_macs1_nomodel",
+        name = "{case}_vs_{control}_narrow",
+        outdir = "08peak_macs3",
         jobname = "{case}"
-    message: "call_peaks macs14 {input}: {threads} threads"
+    conda: "envs/peakcalling.yaml"
+    resources:
+        mem_mb=16000,
+        runtime=240
+    message: "call_peaks macs3 narrow {input}: {threads} threads"
     shell:
         """
-	    source activate py27
-        macs -t {input.case} \
+        macs3 callpeak -t {input.case} \
             -c {input.control} --keep-dup all -f BAM -g {config[macs_g]} \
-            --outdir 08peak_macs1 -n {params.name1} -p {config[macs_pvalue]} &> {log.macs1}
-
-        # nomodel for macs14, shift-size will be 100 bp (e.g. fragment length of 200bp)
-        # can get fragment length from the phantompeakqual. Now set it to 200 bp for all.
-        macs -t {input.case} \
-            -c {input.control} --keep-dup all -f BAM -g {config[macs_g]} \
-            --outdir 08peak_macs1 -n {params.name2} --nomodel -p {config[macs_pvalue]} &> {log.macs1_nomodel}
+            --outdir {params.outdir} -n {params.name} \
+            -q {config[macs_pvalue]} &> {log}
         """
 
-rule call_peaks_macs2:
-    input: control = "04aln_downsample/{control}-downsample.sorted.bam", case="04aln_downsample/{case}-downsample.sorted.bam"
-    output: bed = "09peak_macs2/{case}_vs_{control}_macs2_peaks.xls"
-    log: "00log/{case}_vs_{control}_call_peaks_macs2.log"
+rule call_peaks_macs3_broad:
+    input:
+        control = "04aln_downsample/{control}-downsample.sorted.bam",
+        case = "04aln_downsample/{case}-downsample.sorted.bam"
+    output:
+        peaks = "09peak_macs3/{case}_vs_{control}_broad_peaks.broadPeak",
+        xls = "09peak_macs3/{case}_vs_{control}_broad_peaks.xls"
+    log: "00log/{case}_vs_{control}_call_peaks_macs3_broad.log"
+    threads: 1
     params:
-        name = "{case}_vs_{control}_macs2",
+        name = "{case}_vs_{control}_broad",
+        outdir = "09peak_macs3",
         jobname = "{case}"
-    message: "call_peaks macs2 {input}: {threads} threads"
+    conda: "envs/peakcalling.yaml"
+    resources:
+        mem_mb=16000,
+        runtime=240
+    message: "call_peaks macs3 broad {input}: {threads} threads"
     shell:
         """
-       source activate py27
-       ## for macs2, when nomodel is set, --extsize is default to 200bp, this is the same as 2 * shift-size in macs14.
-        macs2 callpeak -t {input.case} \
+        macs3 callpeak -t {input.case} \
             -c {input.control} --keep-dup all -f BAM -g {config[macs2_g]} \
-            --outdir 09peak_macs2 -n {params.name} -p {config[macs2_pvalue]} --broad --broad-cutoff {config[macs2_pvalue_broad]} --nomodel &> {log}
+            --outdir {params.outdir} -n {params.name} \
+            -q {config[macs2_pvalue]} --broad --broad-cutoff {config[macs2_pvalue_broad]} &> {log}
         """
 
 
 if config["paired_end"]:
     rule multiQC:
         input :
-            expand("00log/{sample}.align", sample = ALL_SAMPLES),
+            expand("00log/{sample}.bwa_align", sample = ALL_SAMPLES),
+            expand("00log/{sample}.markdup", sample = ALL_SAMPLES),
             expand("03aln/{sample}.sorted.bam.flagstat", sample = ALL_SAMPLES),
             expand("02fqc/{sample}_{reads}_fastqc.zip", sample = ALL_SAMPLES, reads = ['R1', 'R2'])
         output: "10multiQC/multiQC_log.html"
         log: "00log/multiqc.log"
+        threads: 1
+        conda: "envs/qc.yaml"
+        resources:
+            mem_mb=4000,
+            runtime=60
         message: "multiqc for all logs"
         shell:
             """
             multiqc 02fqc 03aln 00log -o 10multiQC -d -f -v -n multiQC_log 2> {log}
-
-        """
+            """
 else:
     rule multiQC:
         input :
-            expand("00log/{sample}.align", sample = ALL_SAMPLES),
+            expand("00log/{sample}.bwa_align", sample = ALL_SAMPLES),
+            expand("00log/{sample}.markdup", sample = ALL_SAMPLES),
             expand("03aln/{sample}.sorted.bam.flagstat", sample = ALL_SAMPLES),
             expand("02fqc/{sample}_fastqc.zip", sample = ALL_SAMPLES)
         output: "10multiQC/multiQC_log.html"
         log: "00log/multiqc.log"
+        threads: 1
+        conda: "envs/qc.yaml"
+        resources:
+            mem_mb=4000,
+            runtime=60
         message: "multiqc for all logs"
         shell:
             """
             multiqc 02fqc 03aln 00log -o 10multiQC -d -f -v -n multiQC_log 2> {log}
-
             """
 
-## ROSE has to be run inside the folder where ROSE_main.py resides.
-## symbolic link the rose folder to the snakefile folder can be one alternative solution.
+## ROSE2 for super-enhancer calling (Python 3 port)
+## See: https://github.com/crazyhottommy/ROSE2
 rule superEnhancer:
-    input : "04aln_downsample/{control}-downsample.sorted.bam", "04aln_downsample/{case}-downsample.sorted.bam",
-            "04aln_downsample/{control}-downsample.sorted.bam.bai", "04aln_downsample/{case}-downsample.sorted.bam.bai",
-            "08peak_macs1/{case}_vs_{control}_macs1_peaks.bed"
-    output: "11superEnhancer/{case}_vs_{control}-super/"
+    input:
+        control_bam = "04aln_downsample/{control}-downsample.sorted.bam",
+        case_bam = "04aln_downsample/{case}-downsample.sorted.bam",
+        control_bai = "04aln_downsample/{control}-downsample.sorted.bam.bai",
+        case_bai = "04aln_downsample/{case}-downsample.sorted.bam.bai",
+        peaks = "08peak_macs3/{case}_vs_{control}_narrow_peaks.narrowPeak"
+    output: directory("11superEnhancer/{case}_vs_{control}-super/")
     log: "00log/{case}_vs_{control}_superEnhancer.log"
     threads: 4
     params:
-            jobname = "{case}_vs_{control}",
-            outputdir = os.path.dirname(srcdir("00log"))
+        jobname = "{case}_vs_{control}"
+    conda: "envs/rose.yaml"
+    resources:
+        mem_mb=16000,
+        runtime=240
+    message: "Calling super-enhancers with ROSE2 for {wildcards.case} vs {wildcards.control}"
     shell:
         """
-        source activate py27
-        cd {config[rose_path]}
-        python ROSE_main.py -g {config[rose_g]} -i  {params.outputdir}/{input[4]} -r {params.outputdir}/{input[1]} -c {params.outputdir}/{input[0]} -o {params.outputdir}/{output}
+        # ROSE2 - Python 3 version of ROSE for super-enhancer calling
+        # See: https://github.com/crazyhottommy/ROSE2
+        rose2 main \
+            -i {input.peaks} \
+            -r {input.case_bam} \
+            -c {input.control_bam} \
+            -g {config[rose_g]} \
+            -o {output} 2> {log}
         """
 
 ################################################################################################################################
@@ -455,16 +676,21 @@ rule superEnhancer:
 
 
 rule bam2bed:
-    input :
+    input:
         "04aln_downsample/{sample}-downsample.sorted.bam"
     output:
         "12bed/{sample}.bed"
     params: jobname = "{sample}"
     log: "00log/{sample}_bam2bed.log"
+    threads: 1
+    conda: "envs/bedtools.yaml"
+    resources:
+        mem_mb=8000,
+        runtime=120
     message: "converting bam to bed for {input}"
     shell:
         """
-        bedtools bamtobed -i {input} > {output}
+        bedtools bamtobed -i {input} > {output} 2> {log}
         """
 
 if config["chromHMM"]:
@@ -487,25 +713,44 @@ if config["chromHMM"]:
 
 if config["chromHMM"]:
     rule chromHmm_binarize:
-        input :
-            expand("12bed/{sample}.bed", sample = HISTONE_CASES + CONTROLS), "12bed/cellmarkfiletable.txt"
+        input:
+            beds = expand("12bed/{sample}.bed", sample = HISTONE_CASES + CONTROLS),
+            table = "12bed/cellmarkfiletable.txt"
         output:
-            "13chromHMM/binarizedData"
-        log:
-            chromhmm_binarize = "00log/chromhmm_bin.log"
+            directory("13chromHMM/binarizedData")
+        log: "00log/chromhmm_bin.log"
+        threads: 1
+        conda: "envs/chromhmm.yaml"
+        resources:
+            mem_mb=16000,
+            runtime=360
         shell:
             """
-            java -mx12000M -jar {config[chromHMM_path]}ChromHMM.jar BinarizeBed -b {config[binsize]} \
-            {config[chromHMM_path]}CHROMSIZES/{config[chromHmm_g]}.txt \
-            12bed/ 12bed/cellmarkfiletable.txt {output} 2> {log.chromhmm_binarize}
+            # ChromHMM requires chromosome sizes file
+            # Download if not present for your genome
+            mkdir -p chromsizes
+            if [ ! -f "chromsizes/{config[chromHmm_g]}.txt" ]; then
+                echo "Warning: Chromosome sizes file not found for {config[chromHmm_g]}" > {log}
+                echo "Please provide chromsizes/{config[chromHmm_g]}.txt" >> {log}
+            fi
+
+            ChromHMM.sh BinarizeBed -b {config[binsize]} \
+                chromsizes/{config[chromHmm_g]}.txt \
+                12bed/ {input.table} {output} 2> {log}
             """
 
 if config["chromHMM"]:
     rule chromHmm_learn:
         input: "13chromHMM/binarizedData"
-        output: "13chromHMM/MYOUTPUT"
-        log: chromhmm_learn = "00log/chromhmm_learn.log"
+        output: directory("13chromHMM/MYOUTPUT")
+        log: "00log/chromhmm_learn.log"
+        threads: 10
+        conda: "envs/chromhmm.yaml"
+        resources:
+            mem_mb=16000,
+            runtime=720
         shell:
             """
-            java -mx12000M -jar {config[chromHMM_path]}ChromHMM.jar LearnModel -p 10 -b {config[binsize]} {input} {output} {config[state]} {config[chromHmm_g]} 2> {log.chromhmm_learn}
+            ChromHMM.sh LearnModel -p {threads} -b {config[binsize]} \
+                {input} {output} {config[state]} {config[chromHmm_g]} 2> {log}
             """

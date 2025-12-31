@@ -1,0 +1,8 @@
+name: chromhmm
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - openjdk>=11
+  - chromhmm>=1.25
