@@ -56,7 +56,44 @@ ChIP-seq data analysis requires coordinating dozens of bioinformatics tools with
 
 - **FASTQ files**: Single-end or paired-end ChIP-seq reads
 - **Reference genome**: FASTA file (human, mouse, or custom)
-- **Metadata**: Simple tab-delimited file describing your samples
+- **Metadata file** (`meta.txt`): Tab-delimited file describing your samples
+
+#### Metadata File Format (`meta.txt`)
+
+The metadata file is a **tab-delimited** file with 4 columns that describes your samples:
+
+**For Single-End Data:**
+```
+sample_name	fastq_name	factor	reads
+MOLM-14_DMSO1_5	SRR2518123.fastq.gz	BRD4	R1
+MOLM-14_DMSO1_5	SRR2518124.fastq.gz	Input	R1
+MOLM-14_DMSO2_6	SRR2518125.fastq.gz	BRD4	R1
+MOLM-14_DMSO2_6	SRR2518126.fastq.gz	Input	R1
+```
+
+**For Paired-End Data:**
+```
+sample_name	fastq_name	factor	reads
+Sample1	Sample1_Input_R1.fastq.gz	Input	R1
+Sample1	Sample1_Input_R2.fastq.gz	Input	R2
+Sample1	Sample1_H3K27ac_R1.fastq.gz	H3K27ac	R1
+Sample1	Sample1_H3K27ac_R2.fastq.gz	H3K27ac	R2
+Sample2	Sample2_Input_R1.fastq.gz	Input	R1
+Sample2	Sample2_Input_R2.fastq.gz	Input	R2
+Sample2	Sample2_H3K4me3_R1.fastq.gz	H3K4me3	R1
+Sample2	Sample2_H3K4me3_R2.fastq.gz	H3K4me3	R2
+```
+
+**Column Descriptions:**
+- `sample_name`: Biological sample identifier (can have multiple factors per sample)
+- `fastq_name`: FASTQ file name (must match actual files in your directory)
+- `factor`: ChIP target (e.g., BRD4, H3K27ac, Input, IgG)
+- `reads`: R1 for forward reads, R2 for reverse reads (paired-end only)
+
+**Important Notes:**
+- Multiple factors can belong to the same `sample_name`
+- One `factor` must match the `control` setting in `config.yaml` (e.g., "Input")
+- Output files will be named: `{sample_name}_{factor}` (e.g., `MOLM-14_DMSO1_5_BRD4`)
 
 ### Outputs
 
