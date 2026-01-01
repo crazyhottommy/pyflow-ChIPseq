@@ -178,7 +178,6 @@ See **[QUICKSTART.md](QUICKSTART.md)** for a complete working example with publi
 # 1. Clone the repository
 git clone https://github.com/crazyhottommy/pyflow-ChIPseq.git
 cd pyflow-ChIPseq
-git checkout modernize-2025
 
 # 2. Prepare your metadata file
 # See QUICKSTART.md for format
